@@ -1,0 +1,8 @@
+/ar/*.usdz
+  Content-Type: model/vnd.usdz+zip
+  Access-Control-Allow-Origin: *
+/ar/*.glb
+  Content-Type: model/gltf-binary
+  Access-Control-Allow-Origin: *
+/models/*
+  Cache-Control: public, max-age=86400
