@@ -722,7 +722,7 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
   <div id="ingList"></div>
   <section class="reviews" id="reviews" data-pose="reviews"></section>
   <section class="cta" id="cta" data-pose="cta"></section>
-  <p class="foot">Prototype 3D menu. Box &amp; platter prices from <a href="https://www.torotoro.ca/platters-and-boxes">torotoro.ca</a>. Descriptions, ingredients, signature-dish prices and reviews are placeholders until the real menu and real reviews are added. The 3D models are stand-ins until the dishes are scanned.<br><span style="opacity:.6">Build 70 · glass · Tuna Taco rebuilt from scan</span></p>
+  <p class="foot">Prototype 3D menu. Box &amp; platter prices from <a href="https://www.torotoro.ca/platters-and-boxes">torotoro.ca</a>. Descriptions, ingredients, signature-dish prices and reviews are placeholders until the real menu and real reviews are added. The 3D models are stand-ins until the dishes are scanned.<br><span style="opacity:.6">Build 71 · glass · Tuna Taco rebuilt from scan</span></p>
 </main>
 
 <div class="qlTips" id="qlTips" aria-hidden="true">
@@ -1599,7 +1599,7 @@ document.addEventListener('drop',e=>{e.preventDefault();document.body.classList.
    ========================================================= */
 // Phone-ready AR models, built offline for every scanned dish: real size, resting on the surface,
 // under 60k triangles, one baked texture. GLB for Android (WebXR / Scene Viewer), USDZ for iPhone (AR Quick Look).
-const AR_ASSETS={"sushi_burrito": {"w": 0.1582, "d": 0.16, "h": 0.146}, "tuna_taco": {"w": 0.1296, "d": 0.0587, "h": 0.0746}, "classic_poke": {"w": 0.1739, "d": 0.1739, "h": 0.1048}, "sushi_pizza": {"w": 0.147, "d": 0.1496, "h": 0.0507}, "sunkiss": {"w": 0.1143, "d": 0.1279, "h": 0.1034}, "sushi_platter": {"w": 0.26, "d": 0.1725, "h": 0.0631}, "miso_soup": {"w": 0.118, "d": 0.118, "h": 0.0522}, "avocado_salad": {"w": 0.1594, "d": 0.1598, "h": 0.1138}, "jalapeno_roll": {"w": 0.05, "d": 0.0344, "h": 0.0476}};
+const AR_ASSETS={"sushi_burrito": {"w": 0.1587, "d": 0.16, "h": 0.1461}, "tuna_taco": {"w": 0.1299, "d": 0.0597, "h": 0.0759}, "classic_poke": {"w": 0.1744, "d": 0.1744, "h": 0.1054}, "sushi_pizza": {"w": 0.1475, "d": 0.1499, "h": 0.0509}, "sunkiss": {"w": 0.1161, "d": 0.13, "h": 0.1044}, "sushi_platter": {"w": 0.26, "d": 0.1725, "h": 0.0631}, "miso_soup": {"w": 0.118, "d": 0.118, "h": 0.0522}, "avocado_salad": {"w": 0.1596, "d": 0.16, "h": 0.1145}, "jalapeno_roll": {"w": 0.05, "d": 0.0344, "h": 0.0473}};
 const arAssetCache={};
 function arAsset(src,kind){
   const key=src+'.'+kind; if(arAssetCache[key]) return arAssetCache[key];
@@ -1852,12 +1852,17 @@ function llShowUI(mode){ const u=$('#llUI'); u.hidden=false; u.classList.toggle(
 function llHideUI(){ $('#llUI').hidden=true; const vd=$('#llVid'); vd.srcObject=null; vd.style.filter=''; $('#llUI').querySelectorAll('canvas').forEach(c=>c.remove()); }
 
 async function llModel(d){
-  const {THREE:T,parseGLB,fixTextures}=V.lib;
-  const buf=await llBuf(d);
+  const {THREE:T,parseGLB,fixTextures,glbBuf}=V.lib;
+  // Full-detail dish (the same model as the 3D menu) whenever it's already loaded, scaled to real size.
+  // Miso keeps its AR version (an opaque broth surface; stacked see-through layers don't suit the camera view).
+  const real=d.model.type==='glb'&&AR_ASSETS[d.model.src];
+  const full=real&&d.model.src!=='miso_soup'&&glbBuf&&glbBuf[d.model.src];
+  const buf=full||await llBuf(d);
   const gltf=await new Promise((res,rej)=>parseGLB(buf.slice(0),res,rej));
   await fixTextures(gltf.scene,buf.slice(0));
   const model=gltf.scene;
   model.traverse(o=>{ if(o.isMesh){ const m=o.material; if(m){ if('roughness' in m) m.roughness=Math.max(m.roughness,.55); if(m.emissive){m.emissive.set(0x000000)} } } });
+  if(full){ const b0=new T.Box3().setFromObject(model), s0=b0.getSize(new T.Vector3()); const k=real.w/Math.max(s0.x,1e-6); model.scale.setScalar(k); model.updateMatrixWorld(true); }
   const box=new T.Box3().setFromObject(model), sz=box.getSize(new T.Vector3()), c=box.getCenter(new T.Vector3());
   model.position.set(-c.x,-box.min.y,-c.z);
   const holder=new T.Group(); holder.add(model);
@@ -2457,7 +2462,7 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
   // x,y = fraction of half-screen (y up), s = scale, ex = explode amount
   const POSES={
     desk:{hero:{x:0,y:-.02,s:1.15,ex:0},ingL:{x:.16,y:-.06,s:.9,ex:1},ingR:{x:-.16,y:-.06,s:.9,ex:1},reviews:{x:0,y:.02,s:.92,ex:0},cta:{x:.15,y:-.02,s:1.05,ex:0}},
-    mob:{hero:{x:0,y:.06,s:.9,ex:0},ingL:{x:0,y:.06,s:.74,ex:1},ingR:{x:0,y:.06,s:.74,ex:1},reviews:{x:0,y:.26,s:.74,ex:0},cta:{x:0,y:.12,s:.8,ex:0}}
+    mob:{hero:{x:0,y:.13,s:.8,ex:0},ingL:{x:0,y:.06,s:.74,ex:1},ingR:{x:0,y:.06,s:.74,ex:1},reviews:{x:0,y:.26,s:.74,ex:0},cta:{x:0,y:.12,s:.8,ex:0}}
   };
   const KEYS=['x','y','s','ex'];
   function buildProgress(){
@@ -2807,7 +2812,7 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     }
     return partCache[d.id]=out;
   }
-  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures},show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
+  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures,glbBuf},show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
   if(AR.open) V.setAR(true);
   loadPartImgs(S.dish);
   show(S.dish);
