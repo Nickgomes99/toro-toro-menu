@@ -676,6 +676,7 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
 </style>
+<style>.arWithout{display:block;font-size:14px;font-weight:500;letter-spacing:0;opacity:.78;margin-top:4px}</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lgRefract" x="0" y="0" width="100%" height="100%">
@@ -767,7 +768,6 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
   <button class="tab on" data-tab="view"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>3D View</button>
   <button class="tab order" data-tab="order"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Order</button>
   <button class="tab" data-tab="cart" id="cartBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Cart<span class="badge" id="badge" data-n="0">0</span></button>
-  <button class="tab" data-tab="scan"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Load scan</button>
 </nav>
 
 <div class="arBackdrop"></div>
@@ -1599,7 +1599,7 @@ document.addEventListener('drop',e=>{e.preventDefault();document.body.classList.
    ========================================================= */
 // Phone-ready AR models, built offline for every scanned dish: real size, resting on the surface,
 // under 60k triangles, one baked texture. GLB for Android (WebXR / Scene Viewer), USDZ for iPhone (AR Quick Look).
-const AR_ASSETS={"sushi_burrito": {"w": 0.1587, "d": 0.16, "h": 0.1461}, "tuna_taco": {"w": 0.1299, "d": 0.0597, "h": 0.0759}, "classic_poke": {"w": 0.1744, "d": 0.1744, "h": 0.1054}, "sushi_pizza": {"w": 0.1475, "d": 0.1499, "h": 0.0509}, "sunkiss": {"w": 0.1161, "d": 0.13, "h": 0.1044}, "sushi_platter": {"w": 0.26, "d": 0.1725, "h": 0.0631}, "miso_soup": {"w": 0.118, "d": 0.118, "h": 0.0522}, "avocado_salad": {"w": 0.1596, "d": 0.16, "h": 0.1145}, "jalapeno_roll": {"w": 0.05, "d": 0.0344, "h": 0.0473}};
+const AR_ASSETS={"sushi_burrito": {"w": 0.1585, "d": 0.16, "h": 0.1455}, "tuna_taco": {"w": 0.1296, "d": 0.0594, "h": 0.0759}, "classic_poke": {"w": 0.1738, "d": 0.1738, "h": 0.1052}, "sushi_pizza": {"w": 0.1475, "d": 0.1499, "h": 0.0509}, "sunkiss": {"w": 0.1152, "d": 0.1286, "h": 0.1032}, "sushi_platter": {"w": 0.26, "d": 0.1725, "h": 0.0631}, "miso_soup": {"w": 0.118, "d": 0.118, "h": 0.0522}, "avocado_salad": {"w": 0.1596, "d": 0.16, "h": 0.1145}, "jalapeno_roll": {"w": 0.05, "d": 0.0343, "h": 0.0473}};
 const arAssetCache={};
 function arAsset(src,kind){
   const key=src+'.'+kind; if(arAssetCache[key]) return arAssetCache[key];
@@ -1614,6 +1614,80 @@ function arAsset(src,kind){
       .then(t=>{ const bin=atob(t.trim()), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
         const b=new Blob([u],{type:mime}); return {url:URL.createObjectURL(b),blob:b,hosted:false}; }))
     .catch(e=>{ delete arAssetCache[key]; throw e; });
+}
+// AR files that match the guest's dish: removed ingredients are dropped from the prebuilt AR models.
+// Each AR model holds one mesh per ingredient (ing_<key>), so nothing is rebuilt or re-compressed on the phone.
+const ZCRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function zcrc(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=ZCRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function unzipStored(buf){                       // USDZ = uncompressed zip: read each file straight from its local header
+  const u=new Uint8Array(buf), dv=new DataView(u.buffer,u.byteOffset,u.byteLength), out=[]; let p=0;
+  while(p+30<=u.length&&dv.getUint32(p,true)===0x04034b50){
+    const size=dv.getUint32(p+18,true), nl=dv.getUint16(p+26,true), xl=dv.getUint16(p+28,true), s=p+30+nl+xl;
+    out.push({name:new TextDecoder().decode(u.subarray(p+30,p+30+nl)),data:u.subarray(s,s+size)}); p=s+size;
+  }
+  return out;
+}
+function zipUSDZ(files){                          // every file's data starts on a 64-byte boundary (USDZ rule)
+  const enc=new TextEncoder(), parts=[], cen=[]; let off=0;
+  for(const f of files){
+    const nm=enc.encode(f.name), crc=zcrc(f.data), pad=(64-(off+30+nm.length+4)%64)%64;
+    const h=new Uint8Array(30+nm.length+4+pad), v=new DataView(h.buffer);
+    v.setUint32(0,0x04034b50,true); v.setUint16(4,20,true); v.setUint16(10,0,true); v.setUint16(12,0x21,true);
+    v.setUint32(14,crc,true); v.setUint32(18,f.data.length,true); v.setUint32(22,f.data.length,true);
+    v.setUint16(26,nm.length,true); v.setUint16(28,4+pad,true); h.set(nm,30);
+    v.setUint16(30+nm.length,0x1986,true); v.setUint16(32+nm.length,pad,true);
+    cen.push({nm,crc,len:f.data.length,off}); parts.push(h,f.data); off+=h.length+f.data.length;
+  }
+  const cdOff=off;
+  for(const c of cen){
+    const h=new Uint8Array(46+c.nm.length), v=new DataView(h.buffer);
+    v.setUint32(0,0x02014b50,true); v.setUint16(4,20,true); v.setUint16(6,20,true); v.setUint16(14,0x21,true);
+    v.setUint32(16,c.crc,true); v.setUint32(20,c.len,true); v.setUint32(24,c.len,true); v.setUint16(28,c.nm.length,true);
+    v.setUint32(42,c.off,true); h.set(c.nm,46); parts.push(h); off+=h.length;
+  }
+  const e=new Uint8Array(22), v=new DataView(e.buffer);
+  v.setUint32(0,0x06054b50,true); v.setUint16(8,cen.length,true); v.setUint16(10,cen.length,true);
+  v.setUint32(12,off-cdOff,true); v.setUint32(16,cdOff,true); parts.push(e);
+  return new Blob(parts,{type:'model/vnd.usdz+zip'});
+}
+function usdzWithout(buf,rm){                     // iPhone: cut the removed ingredients' meshes out of the scene text
+  const files=unzipStored(buf), f=files.find(x=>/\.usda$/.test(x.name));
+  if(!f) throw new Error('AR file has no scene');
+  let t=new TextDecoder().decode(f.data);
+  rm.forEach(k=>{ const open='    #<ing '+k+'>\n', close='#</ing '+k+'>\n';
+    const a=t.indexOf(open); if(a<0) return; const b=t.indexOf(close,a); if(b<0) return;
+    let e=b+close.length; while(t[e]==='\n') e++; t=t.slice(0,a)+t.slice(e); });
+  f.data=new TextEncoder().encode(t);
+  return zipUSDZ(files);
+}
+function glbWithout(buf,rm){                      // Android: leave the removed ingredients' nodes out of the scene
+  const u=new Uint8Array(buf), dv=new DataView(u.buffer,u.byteOffset,u.byteLength), jl=dv.getUint32(12,true);
+  const j=JSON.parse(new TextDecoder().decode(u.subarray(20,20+jl))), drop=new Set(rm.map(k=>'ing_'+k));
+  j.scenes[j.scene||0].nodes=j.scenes[j.scene||0].nodes.filter(i=>!drop.has(j.nodes[i].name));
+  const js=new TextEncoder().encode(JSON.stringify(j)), pad=(4-js.length%4)%4, rest=u.subarray(20+jl);
+  const out=new Uint8Array(20+js.length+pad+rest.length), o=new DataView(out.buffer);
+  o.setUint32(0,0x46546C67,true); o.setUint32(4,2,true); o.setUint32(8,out.length,true);
+  o.setUint32(12,js.length+pad,true); o.setUint32(16,0x4E4F534A,true);
+  out.set(js,20); out.fill(0x20,20+js.length,20+js.length+pad); out.set(rest,20+js.length+pad);
+  return new Blob([out],{type:'model/gltf-binary'});
+}
+// the AR file for a dish as the guest has it: the prebuilt file when nothing is removed (keeps the Order banner on iPhone)
+function arKey(id){ const d=BY[id]; return id+'|'+(d?remList(d).join(','):''); }
+const arCustomCache={};
+async function arAssetFor(d,kind){
+  const rm=remList(d), key=d.id+'|'+rm.join(','), base=await arAsset(d.model.src,kind);
+  if(!rm.length) return {...base,key};
+  const ck=key+'.'+kind; if(arCustomCache[ck]) return arCustomCache[ck];
+  const buf=await base.blob.arrayBuffer(), blob=kind==='usdz'?usdzWithout(buf,rm):glbWithout(buf,rm);
+  for(const k in arCustomCache) if(k.startsWith(d.id+'|')&&k.endsWith('.'+kind)){ URL.revokeObjectURL(arCustomCache[k].url); delete arCustomCache[k]; }
+  return arCustomCache[ck]={url:URL.createObjectURL(blob),blob,hosted:false,key,custom:true};
+}
+function arNoHash(d){ const rm=d?remList(d):[]; return rm.length?'~no-'+rm.join('.'):''; }
+function arHash(h){                              // "ar-<dish>~no-<ingredient>.<ingredient>" (QR codes carry what was removed)
+  if(!h||!h.startsWith('ar-')) return null;
+  const [id,no]=h.slice(3).split('~no-'), d=BY[id]; if(!d) return null;
+  if(no){ const r=S.rm[id]||(S.rm[id]=new Set()); no.split('.').forEach(k=>{ if(d.ings.includes(k)&&!isLocked(d,k)) r.add(k); }); }
+  return id;
 }
 function quickLookOK(){ const a=document.createElement('a'); return !!(a.relList&&a.relList.supports&&a.relList.supports('ar')); }
 function openQuickLook(url){
@@ -1681,15 +1755,15 @@ async function prepareAR(id){
     const env=arEnv(), ios=env==='ios';
     const info=AR_ASSETS[d.model.src];
     if(ios){
-      const a=await arAsset(d.model.src,'usdz');
+      const a=await arAssetFor(d,'usdz');
       if(AR.want!==id) return;
-      AR.ql={id,url:a.url}; AR.exp={...info,url:a.url}; AR.mvId=id; AR.loaded=true; AR.mvErr=false; updateARUI(); return AR.exp;
+      AR.ql={id,key:a.key,url:a.url}; AR.exp={...info,url:a.url}; AR.mvId=a.key; AR.loaded=true; AR.mvErr=false; updateARUI(); return AR.exp;
     }
-    const [a]=await Promise.all([arAsset(d.model.src,'glb'),loadMV().catch(()=>{const er=new Error('viewer');er.stage='viewer';throw er})]);
+    const [a]=await Promise.all([arAssetFor(d,'glb'),loadMV().catch(()=>{const er=new Error('viewer');er.stage='viewer';throw er})]);
     if(AR.want!==id) return;
     if(!AR.mv) createMV();
     AR.mv.setAttribute('ar-modes',a.hosted?'scene-viewer webxr quick-look':'webxr scene-viewer quick-look');
-    if(AR.mvId!==id){ AR.mvId=id; AR.loaded=false; AR.mvErr=false; AR.exp={...info,url:a.url};
+    if(AR.mvId!==a.key){ AR.mvId=a.key; AR.loaded=false; AR.mvErr=false; AR.exp={...info,url:a.url};
       AR.mv.setAttribute('alt',`3D model of ${d.name}`); AR.mv.setAttribute('src',a.url); }
     updateARUI(); return AR.exp;
   }catch(e){ if(e&&e.stage==='viewer') throw e; console.warn('prebuilt AR model unavailable, building one on the phone',e); AR.ql=null; }
@@ -1702,8 +1776,8 @@ async function prepareAR(id){
   ]);
   if(AR.want!==id) return exp;
   if(!AR.mv) createMV();
-  if(AR.mvId!==id){
-    AR.mvId=id; AR.loaded=false; AR.mvErr=false; AR.exp=exp;
+  if(AR.mvId!==arKey(id)){
+    AR.mvId=arKey(id); AR.loaded=false; AR.mvErr=false; AR.exp=exp;
     AR.mv.setAttribute('alt',`3D model of ${d.name}`);
     AR.mv.setAttribute('src',exp.url);
   }
@@ -1714,9 +1788,9 @@ function arLoading(msg,spin=true){const l=$('#arLoading');l.hidden=false;l.inner
 const GO_LABEL=$('#arGo').innerHTML;
 function updateARUI(){
   if(!AR.open) return;
-  const mine=(AR.mv||AR.ql)&&AR.mvId===AR.id, ready=mine&&AR.loaded;
+  const mine=(AR.mv||AR.ql)&&AR.mvId===arKey(AR.id), ready=mine&&AR.loaded;
   $('#arLoading').hidden=true;
-  if(AR.exp&&AR.mvId===AR.id) $('#arSize').innerHTML=`<span class="ruler">↔</span><div><b>${Math.round(AR.exp.w*100)} × ${Math.round(AR.exp.d*100)} cm</b><small>about ${Math.max(1,Math.round(AR.exp.h*100))} cm tall</small></div>`;
+  if(AR.exp&&AR.mvId===arKey(AR.id)) $('#arSize').innerHTML=`<span class="ruler">↔</span><div><b>${Math.round(AR.exp.w*100)} × ${Math.round(AR.exp.d*100)} cm</b><small>about ${Math.max(1,Math.round(AR.exp.h*100))} cm tall</small></div>`;
   const env=arEnv(), go=$('#arGo');
   $('#arLow').hidden=!(env==='android'||env==='ios');
   if(env==='preview'||env==='http'||env==='inapp'||(mine&&AR.mvErr)){
@@ -1726,12 +1800,12 @@ function updateARUI(){
   }
   if(env==='ios'&&camOK()){
     go.hidden=false; go.disabled=false; go.innerHTML=GO_LABEL; $('#arSteps').hidden=false; $('#arNo').hidden=true; $('#arLow').hidden=true;
-    $('#arApple').hidden=!(ready&&AR.ql&&AR.ql.id===AR.id&&quickLookOK()); return;
+    $('#arApple').hidden=!(ready&&AR.ql&&AR.ql.key===arKey(AR.id)&&quickLookOK()); return;
   }
   $('#arApple').hidden=true;
   if(!ready){ go.hidden=false;go.disabled=true;go.innerHTML='<div class="spin"></div>Preparing AR…';$('#arSteps').hidden=false;$('#arNo').hidden=true;return }
   go.disabled=false; go.innerHTML=GO_LABEL;
-  const can=(AR.ql&&AR.ql.id===AR.id)?quickLookOK():!!AR.mv.canActivateAR;
+  const can=(AR.ql&&AR.ql.key===arKey(AR.id))?quickLookOK():!!AR.mv.canActivateAR;
   go.hidden=!can; $('#arSteps').hidden=!can; $('#arNo').hidden=can;
   $('#arLow').hidden=!(env==='android'||env==='ios');
   if(!can) showQR();
@@ -1754,10 +1828,10 @@ function openAR(id,launch){
   }
   setTabUI('ar');
   llCheckXR(); if(arEnv()==='android') llBuf(d).catch(()=>{});
-  $('#arName').textContent=d.name;
+  { const rl=remList(d); $('#arName').innerHTML=esc(d.name)+(rl.length?`<small class="arWithout">without ${esc(rl.map(k=>ING[k].label).join(', '))}</small>`:''); }
   renderArRail();
   try{history.replaceState(null,'','#ar-'+id)}catch(e){}
-  const ready=(AR.mv||AR.ql)&&AR.mvId===id&&AR.loaded;
+  const ready=(AR.mv||AR.ql)&&AR.mvId===arKey(id)&&AR.loaded;
   if(launch&&(ready||(arEnv()==='ios'&&camOK()))&&startAR()) { updateARUI(); if(!ready) prepareAR(id).catch(()=>{}); return; }
   if(!ready) $('#arSize').innerHTML='<span class="ruler">↔</span><div><b>Measuring…</b><small>real-world size</small></div>';
   updateARUI();
@@ -1795,13 +1869,13 @@ async function showQR(){
     $('#arNoTxt').innerHTML='<b>The camera opens on your phone.</b> Put this page online, then open it in Safari on iPhone or Chrome on Android to place the dish on your table.';return;
   }
   $('#arNoTxt').innerHTML='<b>Scan with your phone.</b> Your camera opens and the dish lands on your table at real size. Works in Safari on iPhone and Chrome on Android.';
-  try{await loadQR(); new QRCode(box,{text:location.href.split('#')[0]+'#ar-'+AR.id,width:240,height:240,colorDark:'#1a0f08',colorLight:'#ffffff'})}catch(e){}
+  try{await loadQR(); new QRCode(box,{text:location.href.split('#')[0]+'#ar-'+AR.id+arNoHash(BY[AR.id]),width:240,height:240,colorDark:'#1a0f08',colorLight:'#ffffff'})}catch(e){}
 }
 function camOK(){ return !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia); }
 function startAR(){
   if(arEnv()==='ios'&&camOK()&&!LL.on){ llStartCam(BY[AR.id]); return true; }
-  if(AR.mvId!==AR.id) return false;
-  if(AR.ql&&AR.ql.id===AR.id){ if(!quickLookOK()) return false; openQuickLook(AR.ql.url); return true; }
+  if(AR.mvId!==arKey(AR.id)) return false;
+  if(AR.ql&&AR.ql.key===arKey(AR.id)){ if(!quickLookOK()) return false; openQuickLook(AR.ql.url); return true; }
   if(arEnv()==='android'&&LL.xrOK&&V&&V.lib&&!LL.on){ llStartXR(BY[AR.id],true); return true; }
   if(AR.mv&&AR.mv.canActivateAR){ AR.mv.activateAR(); return true; }
   return false;
@@ -1861,6 +1935,9 @@ async function llModel(d){
   const gltf=await new Promise((res,rej)=>parseGLB(buf.slice(0),res,rej));
   await fixTextures(gltf.scene,buf.slice(0));
   const model=gltf.scene;
+  const rmSet=new Set(remList(d)), pk=V.lib.partKey||(()=>null);
+  model.traverse(o=>{ if(!o.isMesh) return; const n=o.name||'', k=n.startsWith('ing_')?n.slice(4):pk(n);
+    if(/__fill/.test(n)||(k&&rmSet.has(k))) o.visible=false; });   // inner fill pieces only show when a dish is pulled apart
   model.traverse(o=>{ if(o.isMesh){ const m=o.material; if(m){ if('roughness' in m) m.roughness=Math.max(m.roughness,.55); if(m.emissive){m.emissive.set(0x000000)} } } });
   if(full){ const b0=new T.Box3().setFromObject(model), s0=b0.getSize(new T.Vector3()); const k=real.w/Math.max(s0.x,1e-6); model.scale.setScalar(k); model.updateMatrixWorld(true); }
   const box=new T.Box3().setFromObject(model), sz=box.getSize(new T.Vector3()), c=box.getCenter(new T.Vector3());
@@ -2063,24 +2140,24 @@ async function llLaunch(){
 }
 $('#arLow').addEventListener('click',llLaunch);
 function appleAR(){
-  const u=AR.ql&&AR.ql.id===AR.id?AR.ql.url:null;
+  const u=AR.ql&&AR.ql.key===arKey(AR.id)?AR.ql.url:null;
   if(!u||!quickLookOK()){ toast('Apple AR is still loading. Try again in a second'); return; }
   if(LL.end) LL.end();
   $('#qlTips').classList.add('open'); $('#qlTips').setAttribute('aria-hidden','false');
 }
 function closeQLTips(){ $('#qlTips').classList.remove('open'); $('#qlTips').setAttribute('aria-hidden','true'); }
-$('#qlGo').addEventListener('click',()=>{ const u=AR.ql&&AR.ql.id===AR.id?AR.ql.url:null; closeQLTips(); if(u) openQuickLook(u); });
+$('#qlGo').addEventListener('click',()=>{ const u=AR.ql&&AR.ql.key===arKey(AR.id)?AR.ql.url:null; closeQLTips(); if(u) openQuickLook(u); });
 $('#qlTips').addEventListener('click',e=>{ if(e.target.id==='qlTips') closeQLTips(); }); $('#qlSkip').addEventListener('click',closeQLTips);
 $('#arApple').addEventListener('click',appleAR); $('#llApple').addEventListener('click',appleAR);
 $('#llClose').addEventListener('click',()=>{ LL.end&&LL.end(); });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&AR.open&&!$('#itemModal').classList.contains('open')&&!$('#drawer').classList.contains('open'))closeAR()});
-window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(h.startsWith('ar-')&&BY[h.slice(3)]){setDish(h.slice(3));openAR(h.slice(3))}});
+window.addEventListener('hashchange',()=>{const id=arHash(location.hash.slice(1));if(id){setDish(id);syncRemovedUI(id);openAR(id)}});
 
 /* =========================================================
    BOOT UI
    ========================================================= */
-const h0=location.hash.slice(1), arStart=h0.startsWith('ar-')&&BY[h0.slice(3)]?h0.slice(3):null;
-setDish(arStart||(BY[h0]?h0:'tuna-taco'));
+const h0=location.hash.slice(1), arStart=arHash(h0);
+setDish(arStart||(BY[h0]?h0:'tuna-taco')); if(arStart) syncRemovedUI(arStart);
 // AR comes first: open on the AR screen unless a specific 3D dish link was used
 if(arStart||!BY[h0]) openAR(S.dish.id); else requestAnimationFrame(()=>setTabUI('view'));
 saveCart(); $('#badge').classList.remove('bump');
@@ -2291,6 +2368,7 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
   /* ---------- dishes built from real 3D files (GLB) ---------- */
   const GLB_PARTS={wonton_outer:'wonton',wonton_inner:'wonton',wonton_rim:'wonton',lettuce:'lettuce',tuna:'tuna',avocado:'avocado',jalapeno:'jalapeno',
     green_onion:'scallion',coriander:'coriander',fried_garlic:'garlic',sesame:'sesame',toro_toro_sauce:'toroSauce'};
+  function partKey(n){ const nb=n.replace(/__fill.*$/,'').replace(/_\d+$/,''); return GLB_PARTS[n]||GLB_PARTS[nb]||(ING[nb]?nb:null); }
   const GLB_EX={wonton:0,lettuce:.06,tuna:.1,avocado:.135,toroSauce:.16,scallion:.185,coriander:.205,garlic:.225,sesame:.245,jalapeno:.27};
   const glbCache={}, glbReady={}, glbBuf={};
   // Re-apply every colour texture straight from the GLB bytes as data: images (works on the strictest pages)
@@ -2812,7 +2890,7 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     }
     return partCache[d.id]=out;
   }
-  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures,glbBuf},show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
+  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures,glbBuf,partKey},show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
   if(AR.open) V.setAR(true);
   loadPartImgs(S.dish);
   show(S.dish);
