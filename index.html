@@ -699,6 +699,44 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
   .plOpts img,.plOpts .none{width:36px;height:20px;aspect-ratio:auto;border-radius:6px}
 }
 </style>
+<style>
+.tbRow{margin-top:12px}
+.tbHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tbCart{font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:12px;color:#2a1405;background:linear-gradient(135deg,rgba(255,190,90,.95),rgba(245,124,0,.75));white-space:nowrap}
+.tbCart[hidden],.tbBody[hidden]{display:none}
+.tbList{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tbItem{display:flex;align-items:center;gap:7px;padding:4px 4px 4px 4px;border-radius:13px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:12.5px;font-weight:600;max-width:100%}
+.tbItem .th{width:28px;height:28px;border-radius:8px;flex:none;overflow:hidden}
+.tbItem .th img{width:100%;height:100%;object-fit:cover}
+.tbNo{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:rgba(255,165,58,.22);color:var(--o1);font-size:11px;font-weight:800;flex:none}
+.tbName{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.tbName small{font-size:10.5px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.tbItem button{width:26px;height:26px;border-radius:9px;color:var(--muted);flex:none;font-size:12px}
+.tbItem button:hover{color:#fff;background:rgba(255,255,255,.1)}
+.tbSum{display:flex;align-items:center;gap:10px;width:100%;margin-top:2px;padding:6px 8px;border-radius:13px;background:rgba(0,0,0,.2)}
+.tbSum>span{display:flex;flex-direction:column;flex:1;min-width:0;font-size:13px;line-height:1.2}.tbSum small{font-size:11.5px;color:var(--muted)}
+.tbSum button{font-size:12px;font-weight:600;color:var(--muted);padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.06)}
+.tbMap{flex:none;overflow:visible}.tbMap rect{fill:rgba(255,190,120,.16);stroke:rgba(255,190,120,.75);stroke-width:.003}
+.tbMap text{fill:#fff;font-size:.055px;font-weight:800;text-anchor:middle;dominant-baseline:middle}
+.tbEmpty{font-size:12.5px;color:var(--muted);padding:6px 2px}
+.tbProg{font-size:12px;color:var(--muted);margin:8px 2px 0}.tbProg[hidden]{display:none}
+.arRail .tbN{margin-left:2px;padding:1px 6px;border-radius:8px;background:rgba(0,0,0,.35);color:#fff;font-size:11px;font-weight:800;font-style:normal}
+.arRail button.inTable{border-color:rgba(255,190,120,.7)}
+@media (min-width:900px){
+  .tbList{display:grid;grid-template-columns:1fr 1fr}
+  .tbItem{min-width:0}.tbName{flex:1}.tbName>*{overflow:hidden;text-overflow:ellipsis}
+  .tbName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tbSum{grid-column:1/-1}
+}
+@media (max-width:899px){
+  .tbRow{margin-top:10px}
+  .tbList{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:16px}
+  .tbList::-webkit-scrollbar{display:none}
+  .tbItem{flex:none}.tbSum{flex:none;width:auto}
+  .tbMap{display:none}
+  body.tableOn .arPanel .agHead{display:none}
+}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lgRefract" x="0" y="0" width="100%" height="100%">
@@ -805,6 +843,10 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
     <div class="arRow">
       <div class="arSize" id="arSize"><span class="ruler">↔</span><div><b>Measuring…</b><small>real-world size</small></div></div>
       <div class="arSeg" id="arSeg" role="group" aria-label="AR scale"><button data-scale="auto" class="on">Zoom on</button><button data-scale="fixed">Lock size</button></div>
+    </div>
+    <div class="tbRow" id="tbRow">
+      <div class="tbHead"><div class="arSeg" id="tbSeg" role="group" aria-label="How many dishes"><button data-tb="one" class="on">One dish</button><button data-tb="table">Whole table</button></div><button class="tbCart" id="tbCart" hidden>Add my order</button></div>
+      <div class="tbBody" id="tbBody" hidden><div class="tbList" id="tbList"></div><p class="tbProg" id="arTblProg" hidden>Setting the table for Apple AR…</p></div>
     </div>
     <div class="plRow" id="plRow"><div class="plHead"><b>Serve it on</b><small id="plNote">Shows up in AR</small></div><div class="plOpts" id="plOpts" role="group" aria-label="Choose a plate"></div></div>
     <button class="btn primary arGo" id="arGo" hidden><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5z"/><path d="M12 12v5M12 12l4.5-2.5M12 12L7.5 9.5"/></svg>Open camera &amp; place dish</button>
@@ -1714,6 +1756,9 @@ function arHash(h){                              // "ar-<dish>~no-<ingredient>.<
   seg.slice(1).forEach(x=>{
     if(x.startsWith('no-')){ const r=S.rm[id]||(S.rm[id]=new Set()); x.slice(3).split('.').forEach(k=>{ if(d.ings.includes(k)&&!isLocked(d,k)) r.add(k); }); }
     if(x.startsWith('pl-')&&PLATES.some(p=>p.id===x.slice(3))){ S.plate=x.slice(3); store.set('plate',S.plate); }
+    if(x.startsWith('tbl-')){ const items=x.slice(4).split(',').map(e=>{ const [tid,r]=e.split(':'), td=BY[tid]; if(!td||!AR_ASSETS[td.model.src]) return null;
+        return {id:tid,rm:(r?r.split('.'):[]).filter(k=>td.ings.includes(k)&&!isLocked(td,k))}; }).filter(Boolean).slice(0,TABLE_MAX);
+      if(items.length){ S.table={on:true,items}; saveTable(); } }
   });
   return id;
 }
@@ -1769,6 +1814,100 @@ function renderPlates(){
   $('#plRow').classList.toggle('off',!ok);
   $('#plNote').textContent=ok?'Shows up in AR':'This one comes on its own tray';
   const on=$('#plOpts .on'), r=$('#plOpts'); if(on&&r.scrollWidth>r.clientWidth) r.scrollLeft=on.offsetLeft-r.clientWidth/2+on.offsetWidth/2;
+}
+// ---- Whole table: several dishes in AR together
+const TABLE_MAX=6;
+S.table=(()=>{ const t=store.get('table',null); const items=(t&&Array.isArray(t.items)?t.items:[]).filter(i=>i&&BY[i.id]&&AR_ASSETS[BY[i.id].model.src]).slice(0,TABLE_MAX)
+  .map(i=>({id:i.id,rm:(i.rm||[]).filter(k=>BY[i.id].ings.includes(k)&&!isLocked(BY[i.id],k))})); return {on:!!(t&&t.on&&items.length),items}; })();
+function tableOn(){ return !!(S.table.on&&S.table.items.length); }
+function saveTable(){ store.set('table',{on:S.table.on,items:S.table.items}); }
+function tableKey(){ return 'T|'+S.plate+'|'+S.table.items.map(i=>i.id+':'+i.rm.join('.')).join(','); }
+function arKeyNow(){ return tableOn()?tableKey():arKey(AR.id); }
+function plateForItem(d){ return plateFor(d); }
+// how much table each dish takes (its plate when it has one) and where it goes: rows from front to back, centred
+function tableLayout(items){
+  const GAP=.035, MAXW=.78, fp=items.map(it=>{ const d=BY[it.id], a=AR_ASSETS[d.model.src], pl=plateForItem(d), ps=pl?PLATE_FIT[d.model.src]:0;
+    return {w:pl?Math.max(.26*ps,a.w):a.w, d:pl?Math.max(.13*ps,a.d):a.d, h:a.h+(pl?pl.hF:0)}; });
+  const rows=[]; let row=[], rw=0;
+  const order=fp.map((f,i)=>i).sort((a,b)=>fp[a].h-fp[b].h||a-b);     // low dishes in front, tall ones behind so nothing is hidden
+  order.forEach(i=>{ const f=fp[i]; if(row.length&&rw+GAP+f.w>MAXW){ rows.push(row); row=[]; rw=0; } rw+=(row.length?GAP:0)+f.w; row.push(i); });
+  if(row.length) rows.push(row);
+  const pos=new Array(items.length); let z=0, W=0;
+  rows.forEach(r=>{ const rd=Math.max(...r.map(i=>fp[i].d)), w=r.reduce((s,i)=>s+fp[i].w,0)+GAP*(r.length-1); let x=-w/2; W=Math.max(W,w);
+    r.forEach(i=>{ pos[i]={x:x+fp[i].w/2,z:z-rd/2,w:fp[i].w,d:fp[i].d}; x+=fp[i].w+GAP; }); z-=rd+GAP; });
+  const D=-z-GAP; pos.forEach(p=>{ p.z=-(p.z+D/2); });              // centred; first row nearest the guest (dishes face the guest along -z, like single dishes)
+  rows.forEach(r=>r.sort((a,b)=>a-b));
+  return {pos,W,D,H:Math.max(...fp.map(f=>f.h)),rows:rows.length};
+}
+// iPhone: one AR file holding every dish (each with its own removals and plate), side by side
+async function dishUsda(d,rm,pl){
+  const base=await arAsset(d.model.src+'_lite','usdz').catch(()=>arAsset(d.model.src,'usdz')), files=unzipStored(await base.blob.arrayBuffer()), f=files.find(x=>/\.usda$/.test(x.name));
+  let t=cutIngredients(new TextDecoder().decode(f.data),rm); const extra=[];
+  if(pl){
+    const [snip,tex,glow]=await Promise.all([plateFile('plate_'+pl.id+'.usda',true),plateFile('plate_'+pl.id+'.jpg'),plateFile('plate_'+pl.id+'_glow.jpg')]);
+    const lift=(pl.hF+.0004).toFixed(4);
+    t=t.replace(/(    def Mesh "ing_\w+"\n    \{\n)/g,'$1        double3 xformOp:translate = (0, '+lift+', 0)\n        uniform token[] xformOpOrder = ["xformOp:translate"]\n');
+    const end=t.lastIndexOf('}'); t=t.slice(0,end)+snip.replace(/__PS__/g,String(PLATE_FIT[d.model.src]))+t.slice(end);
+    extra.push(['plate_'+pl.id+'.jpg',new Uint8Array(tex)],['plate_'+pl.id+'_glow.jpg',new Uint8Array(glow)]);
+  }
+  return {t,files:files.filter(x=>x!==f),extra};
+}
+async function tableUSDZ(items){
+  const L=tableLayout(items), out=new Map(); let body='';
+  for(let i=0;i<items.length;i++){
+    if(AR.open&&tableOn()) arTableProgress(i,items.length);
+    const it=items[i], d=BY[it.id], src=d.model.src, {t,files,extra}=await dishUsda(d,it.rm,plateForItem(d));
+    const a=t.indexOf('def Xform "Dish"'), open=t.indexOf('{',a), close=t.lastIndexOf('}');
+    let inner=t.slice(open+1,close).replace(/^\s*token preliminary:[^\n]*\n/gm,'').split('</Dish/').join('</Table/D'+i+'/');
+    files.forEach(x=>{ const nm=src+'_'+x.name; inner=inner.split('@'+x.name+'@').join('@'+nm+'@'); if(!out.has(nm)) out.set(nm,x.data); });
+    extra.forEach(([nm,data])=>{ if(!out.has(nm)) out.set(nm,data); });
+    const p=L.pos[i];
+    body+='    def Xform "D'+i+'"\n    {\n        double3 xformOp:translate = ('+p.x.toFixed(4)+', 0, '+p.z.toFixed(4)+')\n        uniform token[] xformOpOrder = ["xformOp:translate"]\n'+inner+'\n    }\n\n';
+  }
+  const root='#usda 1.0\n(\n    defaultPrim = "Table"\n    metersPerUnit = 1\n    upAxis = "Y"\n)\n\ndef Xform "Table" (\n    kind = "component"\n)\n{\n    token preliminary:anchoring:type = "plane"\n    token preliminary:planeAnchoring:alignment = "horizontal"\n\n'+body+'}\n';
+  return zipUSDZ([{name:'table.usda',data:new TextEncoder().encode(root)},...[...out].map(([name,data])=>({name,data}))]);
+}
+function arTableProgress(i,n){ const a=$('#arApple'); if(!a||!a.hidden) return; const sm=$('#arTblProg'); if(sm) sm.textContent=`Setting the table for Apple AR… ${i+1} of ${n}`; }
+let tableBlob=null;
+async function tableAsset(){
+  const key=tableKey(); if(tableBlob&&tableBlob.key===key) return tableBlob;
+  const blob=await tableUSDZ(S.table.items.map(i=>({...i})));
+  if(tableKey()!==key) throw new Error('stale');
+  if(tableBlob) URL.revokeObjectURL(tableBlob.url);
+  return tableBlob={key,blob,url:URL.createObjectURL(blob)};
+}
+// camera view + Android WebXR: the same layout, built from each dish's light AR model
+async function llTable(items){
+  const T=V.lib.THREE, L=tableLayout(items), group=new T.Group();
+  for(let i=0;i<items.length;i++){ llMsg(`Setting the table… ${i+1} of ${items.length}`); const M=await llModel(BY[items[i].id],{rm:items[i].rm,lite:true}); M.holder.position.set(L.pos[i].x,0,L.pos[i].z); group.add(M.holder); }
+  return {holder:group,size:new T.Vector3(L.W,L.H,L.D),dist:Math.min(1.5,Math.max(.55,L.W*1.65,L.D*2.2))};   // far enough to see the whole table
+}
+function llBuild(d){ return tableOn()?llTable(S.table.items):llModel(d); }
+// ---- table UI
+function rmFromLabels(d,labels){ return (labels||[]).length?d.ings.filter(k=>labels.includes(ING[k].label)&&!isLocked(d,k)):[]; }
+function tableAdd(id,rm){
+  if(S.table.items.length>=TABLE_MAX){ toast(`Up to ${TABLE_MAX} dishes at once`); return false; }
+  const d=BY[id]; if(!d||!AR_ASSETS[d.model.src]){ toast('That dish has no AR model yet'); return false; }
+  S.table.items.push({id,rm:rm||remList(d)}); saveTable(); return true;
+}
+function tableChanged(){ saveTable(); renderTable(); renderArRail(); if(AR.open){ updateARUI(); prepareAR(AR.id).catch(()=>{}); } }
+function tableSVG(L){
+  const pad=.02, W=L.W+pad*2, D=L.D+pad*2, sc=Math.min(120/W,56/D);
+  return `<svg class="tbMap" width="${(W*sc).toFixed(0)}" height="${(D*sc).toFixed(0)}" viewBox="${(-W/2).toFixed(3)} ${(-D/2).toFixed(3)} ${W.toFixed(3)} ${D.toFixed(3)}" aria-hidden="true">`+
+    L.pos.map((p,i)=>`<rect x="${(p.x-p.w/2).toFixed(3)}" y="${(-p.z-p.d/2).toFixed(3)}" width="${p.w.toFixed(3)}" height="${p.d.toFixed(3)}" rx=".012"/><text x="${p.x.toFixed(3)}" y="${(-p.z).toFixed(3)}">${i+1}</text>`).join('')+'</svg>';
+}
+function renderTable(){
+  const on=S.table.on, items=S.table.items;
+  document.body.classList.toggle('tableOn',on);
+  $('#tbSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',(b.dataset.tb==='table')===on));
+  const n=S.cart.reduce((s,c)=>s+(BY[c.id]&&AR_ASSETS[BY[c.id].model.src]?c.qty:0),0);
+  $('#tbCart').hidden=!(on&&n); $('#tbCart').textContent=`Add my order (${n})`;
+  $('#tbBody').hidden=!on;
+  if(!on) return;
+  if(!items.length){ $('#tbList').innerHTML='<p class="tbEmpty">Tap dishes below to put them on the table</p>'; return; }
+  const L=tableLayout(items);
+  $('#tbList').innerHTML=items.map((it,i)=>{ const d=BY[it.id]; return `<span class="tbItem"><span class="tbNo">${i+1}</span><span class="th" data-th="${d.id}">${thumbHTML(d)}</span><span class="tbName">${esc(d.name)}${it.rm.length?`<small>no ${esc(it.rm.map(k=>ING[k].label.toLowerCase()).join(', '))}</small>`:''}</span><button data-tbrm="${i}" aria-label="Take ${esc(d.name)} off the table">✕</button></span>`; }).join('')
+    +`<span class="tbSum">${tableSVG(L)}<span><b>${items.length} dish${items.length>1?'es':''}</b><small>about ${Math.round(L.W*100)} × ${Math.round(L.D*100)} cm of table</small></span><button data-tbclear>Clear</button></span>`;
 }
 function quickLookOK(){ const a=document.createElement('a'); return !!(a.relList&&a.relList.supports&&a.relList.supports('ar')); }
 function openQuickLook(url){
@@ -1830,6 +1969,16 @@ function createMV(){
 // Build the real-size GLB for a dish and load it into model-viewer (in the background)
 async function prepareAR(id){
   const d=BY[id]; if(!d) return;
+  if(tableOn()){
+    const key=tableKey(), L=tableLayout(S.table.items); AR.want='table:'+key;
+    AR.exp={w:L.W,d:L.D,h:L.H,table:S.table.items.length}; AR.mvId=null; updateARUI();
+    if(arEnv()==='ios'){ clearTimeout(AR.tbT); await new Promise(r=>AR.tbT=setTimeout(r,450));       // waits while dishes are still being added
+      if(AR.want!=='table:'+key) return;
+      try{ const a=await tableAsset(); if(AR.want!=='table:'+key) return; AR.ql={id:'table',key,url:a.url}; }
+      catch(e){ if(e&&e.message==='stale') return; console.warn('table',e); AR.ql=null; } }
+    if(AR.want!=='table:'+key) return;
+    AR.mvId=key; AR.loaded=true; AR.mvErr=false; updateARUI(); return AR.exp;
+  }
   AR.want=id;
   const pre=d.model.type==='glb'&&AR_ASSETS[d.model.src];
   if(pre) try{
@@ -1869,9 +2018,10 @@ function arLoading(msg,spin=true){const l=$('#arLoading');l.hidden=false;l.inner
 const GO_LABEL=$('#arGo').innerHTML;
 function updateARUI(){
   if(!AR.open) return;
-  const mine=(AR.mv||AR.ql)&&AR.mvId===arKey(AR.id), ready=mine&&AR.loaded;
+  const mine=(AR.mv||AR.ql)&&AR.mvId===arKeyNow(), ready=mine&&AR.loaded;
   $('#arLoading').hidden=true;
-  if(AR.exp&&AR.mvId===arKey(AR.id)) $('#arSize').innerHTML=`<span class="ruler">↔</span><div><b>${Math.round(AR.exp.w*100)} × ${Math.round(AR.exp.d*100)} cm</b><small>about ${Math.max(1,Math.round(AR.exp.h*100))} cm tall</small></div>`;
+  if(AR.exp&&AR.exp.table) $('#arSize').innerHTML=`<span class="ruler">↔</span><div><b>${Math.round(AR.exp.w*100)} × ${Math.round(AR.exp.d*100)} cm</b><small>${AR.exp.table} dishes side by side</small></div>`;
+  else if(AR.exp&&AR.mvId===arKeyNow()) $('#arSize').innerHTML=`<span class="ruler">↔</span><div><b>${Math.round(AR.exp.w*100)} × ${Math.round(AR.exp.d*100)} cm</b><small>about ${Math.max(1,Math.round(AR.exp.h*100))} cm tall</small></div>`;
   const env=arEnv(), go=$('#arGo');
   $('#arLow').hidden=!(env==='android'||env==='ios');
   if(env==='preview'||env==='http'||env==='inapp'||(mine&&AR.mvErr)){
@@ -1880,22 +2030,41 @@ function updateARUI(){
     return;
   }
   if(env==='ios'&&camOK()){
-    go.hidden=false; go.disabled=false; go.innerHTML=GO_LABEL; $('#arSteps').hidden=false; $('#arNo').hidden=true; $('#arLow').hidden=true;
-    $('#arApple').hidden=!(ready&&AR.ql&&AR.ql.key===arKey(AR.id)&&quickLookOK()); return;
+    go.hidden=false; go.disabled=false; go.innerHTML=tableOn()?GO_LABEL.replace('place dish','place '+S.table.items.length+' dishes'):GO_LABEL; $('#arSteps').hidden=false; $('#arNo').hidden=true; $('#arLow').hidden=true;
+    $('#arApple').hidden=!(ready&&AR.ql&&AR.ql.key===arKeyNow()&&quickLookOK());
+    $('#arTblProg').hidden=!(tableOn()&&quickLookOK()&&$('#arApple').hidden); return;
   }
   $('#arApple').hidden=true;
+  if(tableOn()){                                           // Android: the camera view / WebXR place the whole table
+    const n=S.table.items.length;
+    if(env==='desktop'){ go.hidden=true; $('#arSteps').hidden=true; $('#arNo').hidden=false; $('#arLow').hidden=true; showQR(); return; }
+    go.hidden=false; go.disabled=false; go.innerHTML=GO_LABEL.replace('place dish','place '+n+' dishes'); $('#arSteps').hidden=false; $('#arNo').hidden=true; return;
+  }
   if(!ready){ go.hidden=false;go.disabled=true;go.innerHTML='<div class="spin"></div>Preparing AR…';$('#arSteps').hidden=false;$('#arNo').hidden=true;return }
   go.disabled=false; go.innerHTML=GO_LABEL;
-  const can=(AR.ql&&AR.ql.key===arKey(AR.id))?quickLookOK():!!AR.mv.canActivateAR;
+  const can=(AR.ql&&AR.ql.key===arKeyNow())?quickLookOK():!!AR.mv.canActivateAR;
   go.hidden=!can; $('#arSteps').hidden=!can; $('#arNo').hidden=can;
   $('#arLow').hidden=!(env==='android'||env==='ios');
   if(!can) showQR();
 }
 function renderArRail(){
-  $('#arRail').innerHTML=DISHES.map(d=>`<button data-ard="${d.id}" class="${d.id===AR.id?'on':''}"><span class="th" data-th="${d.id}">${thumbHTML(d)}</span>${esc(d.name)}</button>`).join('');
+  const cnt={}; if(S.table.on) S.table.items.forEach(i=>cnt[i.id]=(cnt[i.id]||0)+1);
+  $('#arRail').innerHTML=DISHES.map(d=>`<button data-ard="${d.id}" class="${d.id===AR.id?'on':''}${cnt[d.id]?' inTable':''}"><span class="th" data-th="${d.id}">${thumbHTML(d)}</span>${esc(d.name)}${cnt[d.id]?`<i class="tbN">×${cnt[d.id]}</i>`:''}</button>`).join('');
   const on=$('#arRail .on'), r=$('#arRail'); if(on) r.scrollLeft=on.offsetLeft-r.clientWidth/2+on.offsetWidth/2;
 }
-$('#arRail').addEventListener('click',e=>{const b=e.target.closest('[data-ard]');if(b){setDish(b.dataset.ard);openAR(b.dataset.ard)}});
+$('#arRail').addEventListener('click',e=>{const b=e.target.closest('[data-ard]');if(!b) return;
+  if(S.table.on){ if(!tableAdd(b.dataset.ard)) return; toast(`${BY[b.dataset.ard].name} added to the table`); renderTable(); }
+  setDish(b.dataset.ard);openAR(b.dataset.ard)});
+$('#tbSeg').addEventListener('click',e=>{ const b=e.target.closest('[data-tb]'); if(!b) return; const on=b.dataset.tb==='table'; if(on===S.table.on) return;
+  S.table.on=on; if(on&&!S.table.items.length&&AR.id) tableAdd(AR.id);
+  tableChanged(); if(on) toast('Tap more dishes below to add them'); });
+$('#tbList').addEventListener('click',e=>{
+  const r=e.target.closest('[data-tbrm]'); if(r){ S.table.items.splice(+r.dataset.tbrm,1); tableChanged(); return; }
+  if(e.target.closest('[data-tbclear]')){ S.table.items=[]; tableChanged(); } });
+$('#tbCart').addEventListener('click',()=>{ const before=S.table.items.length; let skipped=0;
+  S.cart.forEach(c=>{ const d=BY[c.id]; if(!d||!AR_ASSETS[d.model.src]) return; for(let q=0;q<c.qty;q++){ if(S.table.items.length>=TABLE_MAX){ skipped++; continue; } S.table.items.push({id:c.id,rm:rmFromLabels(d,c.rem)}); } });
+  tableChanged(); const n=S.table.items.length-before;
+  toast(skipped?`Added ${n}. AR shows up to ${TABLE_MAX} dishes at once`:`Added ${n} dish${n===1?'':'es'} from your order`); });
 
 // launch=true when called from a tap: if the dish is ready, the camera opens right away
 function openAR(id,launch){
@@ -1910,9 +2079,9 @@ function openAR(id,launch){
   setTabUI('ar');
   llCheckXR(); if(arEnv()==='android') llBuf(d).catch(()=>{});
   { const rl=remList(d); $('#arName').innerHTML=esc(d.name)+(rl.length?`<small class="arWithout">without ${esc(rl.map(k=>ING[k].label).join(', '))}</small>`:''); }
-  renderArRail(); renderPlates(); syncPlatePreview();
+  renderArRail(); renderPlates(); renderTable(); syncPlatePreview();
   try{history.replaceState(null,'','#ar-'+id)}catch(e){}
-  const ready=(AR.mv||AR.ql)&&AR.mvId===arKey(id)&&AR.loaded;
+  const ready=(AR.mv||AR.ql)&&AR.mvId===(tableOn()?tableKey():arKey(id))&&AR.loaded;
   if(launch&&(ready||(arEnv()==='ios'&&camOK()))&&startAR()) { updateARUI(); if(!ready) prepareAR(id).catch(()=>{}); return; }
   if(!ready) $('#arSize').innerHTML='<span class="ruler">↔</span><div><b>Measuring…</b><small>real-world size</small></div>';
   updateARUI();
@@ -1949,15 +2118,16 @@ async function showQR(){
   if(!/^https?:$/.test(location.protocol)){
     $('#arNoTxt').innerHTML='<b>The camera opens on your phone.</b> Put this page online, then open it in Safari on iPhone or Chrome on Android to place the dish on your table.';return;
   }
-  $('#arNoTxt').innerHTML='<b>Scan with your phone.</b> Your camera opens and the dish lands on your table at real size. Works in Safari on iPhone and Chrome on Android.';
-  try{await loadQR(); new QRCode(box,{text:location.href.split('#')[0]+'#ar-'+AR.id+arNoHash(BY[AR.id])+'~pl-'+S.plate,width:240,height:240,colorDark:'#1a0f08',colorLight:'#ffffff'})}catch(e){}
+  $('#arNoTxt').innerHTML=tableOn()?`<b>Scan with your phone.</b> Your camera opens and all ${S.table.items.length} dishes land on your table side by side, at real size. Works in Safari on iPhone and Chrome on Android.`:'<b>Scan with your phone.</b> Your camera opens and the dish lands on your table at real size. Works in Safari on iPhone and Chrome on Android.';
+  try{await loadQR(); new QRCode(box,{text:location.href.split('#')[0]+'#ar-'+AR.id+(tableOn()?'~tbl-'+S.table.items.map(i=>i.id+(i.rm.length?':'+i.rm.join('.'):'')).join(','):arNoHash(BY[AR.id]))+'~pl-'+S.plate,width:240,height:240,colorDark:'#1a0f08',colorLight:'#ffffff'})}catch(e){}
 }
 function camOK(){ return !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia); }
 function startAR(){
   if(arEnv()==='ios'&&camOK()&&!LL.on){ llStartCam(BY[AR.id]); return true; }
-  if(AR.mvId!==arKey(AR.id)) return false;
-  if(AR.ql&&AR.ql.key===arKey(AR.id)){ if(!quickLookOK()) return false; openQuickLook(AR.ql.url); return true; }
+  if(AR.mvId!==arKeyNow()) return false;
+  if(AR.ql&&AR.ql.key===arKeyNow()){ if(!quickLookOK()) return false; openQuickLook(AR.ql.url); return true; }
   if(arEnv()==='android'&&LL.xrOK&&V&&V.lib&&!LL.on){ llStartXR(BY[AR.id],true); return true; }
+  if(tableOn()&&V&&V.lib&&!LL.on){ llStartCam(BY[AR.id]); return true; }
   if(AR.mv&&AR.mv.canActivateAR){ AR.mv.activateAR(); return true; }
   return false;
 }
@@ -2010,17 +2180,18 @@ function llShowUI(mode){ const u=$('#llUI'); u.hidden=false; u.classList.toggle(
   $('#llBoost').hidden=mode!=='cam'; $('#llTorch').hidden=true; document.body.classList.add('lock'); }
 function llHideUI(){ $('#llUI').hidden=true; const vd=$('#llVid'); vd.srcObject=null; vd.style.filter=''; $('#llUI').querySelectorAll('canvas').forEach(c=>c.remove()); }
 
-async function llModel(d){
+async function llModel(d,opt){
+  opt=opt||{};
   const {THREE:T,parseGLB,fixTextures,glbBuf}=V.lib;
   // Full-detail dish (the same model as the 3D menu) whenever it's already loaded, scaled to real size.
   // Miso keeps its AR version (an opaque broth surface; stacked see-through layers don't suit the camera view).
   const real=d.model.type==='glb'&&AR_ASSETS[d.model.src];
-  const full=real&&d.model.src!=='miso_soup'&&glbBuf&&glbBuf[d.model.src];
-  const buf=full||await llBuf(d);
+  const full=!opt.lite&&real&&d.model.src!=='miso_soup'&&glbBuf&&glbBuf[d.model.src];
+  const buf=full||(opt.lite?await arAsset(d.model.src+'_lite','glb').then(a=>a.blob.arrayBuffer()).catch(()=>llBuf(d)):await llBuf(d));
   const gltf=await new Promise((res,rej)=>parseGLB(buf.slice(0),res,rej));
   await fixTextures(gltf.scene,buf.slice(0));
   const model=gltf.scene;
-  const rmSet=new Set(remList(d)), pk=V.lib.partKey||(()=>null);
+  const rmSet=new Set(opt.rm||remList(d)), pk=V.lib.partKey||(()=>null);
   model.traverse(o=>{ if(!o.isMesh) return; const n=o.name||'', k=n.startsWith('ing_')?n.slice(4):pk(n);
     if(/__fill/.test(n)||(k&&rmSet.has(k))) o.visible=false; });   // inner fill pieces only show when a dish is pulled apart
   model.traverse(o=>{ if(o.isMesh){ const m=o.material; if(m){ if('roughness' in m) m.roughness=Math.max(m.roughness,.55); if(m.emissive){m.emissive.set(0x000000)} } } });
@@ -2096,7 +2267,8 @@ async function llStartXR(d,main){
   await r.xr.setSession(session);
   const overlay=!!session.domOverlayState;
   llMsg('Loading '+esc(d.name)+'…');
-  let M; try{ M=await llModel(d); }catch(e){ llMsg('Couldn’t load this dish.'); session.end(); return; }
+  let M; try{ M=await llBuild(d); }catch(e){ llMsg('Couldn’t load this dish.'); session.end(); return; }
+  const FRONT=M.dist||.55;
   const holder=M.holder; holder.visible=false; scene.add(holder);
   if(AR.scale==='auto') holder.scale.setScalar(1);
   // surface marker
@@ -2111,7 +2283,7 @@ async function llStartXR(d,main){
   function placeFront(){ inFront=true;
     const c=xrCam(); c.getWorldPosition(camPos); c.getWorldDirection(camDir); camDir.y=0;
     if(camDir.lengthSq()<1e-4) camDir.set(0,0,-1); camDir.normalize();
-    holder.position.copy(camPos).addScaledVector(camDir,.55); holder.position.y=camPos.y-.4;
+    holder.position.copy(camPos).addScaledVector(camDir,FRONT); holder.position.y=camPos.y-.4;
     llFace(T,holder,camPos); holder.visible=true; placed=true; ret.visible=false; llPlacedUI(false);
   }
   function placeSurface(){ inFront=false;
@@ -2168,7 +2340,7 @@ async function llStartCam(d){
   // motion sensors: iOS only asks inside the tap, so this comes first
   let orientOK=false;
   try{ if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function') orientOK=(await DeviceOrientationEvent.requestPermission())==='granted'; else orientOK='DeviceOrientationEvent' in window; }catch(e){ orientOK=false; }
-  const modelP=whenV().then(()=>llModel(d));                      // dish loads while the camera starts
+  const modelP=whenV().then(()=>llBuild(d));                      // dish loads while the camera starts
   modelP.catch(()=>{});
   let stream;
   try{ stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}}); }
@@ -2186,7 +2358,7 @@ async function llStartCam(d){
   const T=V.lib.THREE;
   const r=llRenderer(T,false); ui.insertBefore(r.domElement,ui.querySelector('.llTop'));
   const scene=llScene(T), cam=new T.PerspectiveCamera(65,innerWidth/innerHeight,.01,30);   // iPhone main camera, portrait
-  const holder=M.holder; scene.add(holder); holder.visible=false;
+  const holder=M.holder; scene.add(holder); holder.visible=false; const FRONT=M.dist||.55;
   // motion sensors -> camera rotation (smoothed so the dish doesn't jitter)
   const zee=new T.Vector3(0,0,1), eu=new T.Euler(), q0=new T.Quaternion(), q1=new T.Quaternion(-Math.SQRT1_2,0,0,Math.SQRT1_2), tq=new T.Quaternion();
   let ori=null, first=true; const onOri=e=>{ if(e.beta==null) return; ori=e; };
@@ -2204,7 +2376,8 @@ async function llStartCam(d){
     applyOri(true); cam.updateMatrixWorld();
     pl.constant=H.h; ray.setFromCamera(new T.Vector2(0,-.1),cam);
     let ok=ray.ray.intersectPlane(pl,hit); const dist=ok?Math.hypot(hit.x,hit.z):0;
-    if(!ok||dist<.25||dist>1.3){ cam.getWorldDirection(dir); dir.y=0; if(dir.lengthSq()<1e-4) dir.set(0,0,-1); dir.normalize(); hit.set(dir.x*.55,-H.h,dir.z*.55); }
+    if(ok&&dist>=.25&&dist<FRONT*.9&&FRONT>.6){ hit.x*=FRONT/dist; hit.z*=FRONT/dist; }   // a whole table needs room: push it out so it all fits in view
+    if(!ok||dist<.25||dist>Math.max(1.3,FRONT+.3)){ cam.getWorldDirection(dir); dir.y=0; if(dir.lengthSq()<1e-4) dir.set(0,0,-1); dir.normalize(); hit.set(dir.x*FRONT,-H.h,dir.z*FRONT); }
     holder.position.copy(hit); llFace(T,holder,cam.position); holder.visible=true;
     $('#llRow').hidden=false; $('#llPlace').hidden=true;
     const h=$('#llHint'); h.classList.remove('pulse'); void h.offsetWidth; h.classList.add('pulse');
@@ -2232,13 +2405,13 @@ async function llLaunch(){
 }
 $('#arLow').addEventListener('click',llLaunch);
 function appleAR(){
-  const u=AR.ql&&AR.ql.key===arKey(AR.id)?AR.ql.url:null;
+  const u=AR.ql&&AR.ql.key===arKeyNow()?AR.ql.url:null;
   if(!u||!quickLookOK()){ toast('Apple AR is still loading. Try again in a second'); return; }
   if(LL.end) LL.end();
   $('#qlTips').classList.add('open'); $('#qlTips').setAttribute('aria-hidden','false');
 }
 function closeQLTips(){ $('#qlTips').classList.remove('open'); $('#qlTips').setAttribute('aria-hidden','true'); }
-$('#qlGo').addEventListener('click',()=>{ const u=AR.ql&&AR.ql.key===arKey(AR.id)?AR.ql.url:null; closeQLTips(); if(u) openQuickLook(u); });
+$('#qlGo').addEventListener('click',()=>{ const u=AR.ql&&AR.ql.key===arKeyNow()?AR.ql.url:null; closeQLTips(); if(u) openQuickLook(u); });
 $('#qlTips').addEventListener('click',e=>{ if(e.target.id==='qlTips') closeQLTips(); }); $('#qlSkip').addEventListener('click',closeQLTips);
 $('#arApple').addEventListener('click',appleAR); $('#llApple').addEventListener('click',appleAR);
 $('#llClose').addEventListener('click',()=>{ LL.end&&LL.end(); });
