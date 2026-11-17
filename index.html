@@ -737,6 +737,28 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
   body.tableOn .arPanel .agHead{display:none}
 }
 </style>
+<style>
+/* phones: AR options and the how-to sit in two dropdowns; the size readout is hidden (still worked out) */
+@media (min-width:900px){ .arDrop,.arDropBody{display:contents} .arDropBtn{display:none} }
+@media (max-width:899px){
+  .arSize{display:none}
+  .arRow{justify-content:flex-end}
+  .arDrop{margin-top:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line);overflow:hidden}
+  .arDrop.empty{display:none}
+  .arDropBtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;font-size:14px;font-weight:700;color:#fff;text-align:left}
+  .arDropBtn svg{flex:none;transition:transform .25s}
+  .arDrop.open .arDropBtn svg{transform:rotate(180deg)}
+  .arDropViews .arDropBtn{background:linear-gradient(135deg,rgba(255,190,90,.9),rgba(245,124,0,.7));color:#2a1405}
+  .arDropBody{display:none;padding:0 10px 10px}
+  .arDropViews .arDropBody{padding-top:10px}
+  .arDrop.open .arDropBody{display:block}
+  .arDropBody .arGo{width:100%}
+  .arDropBody .arLow{margin-top:8px}
+  .arDropBody>.arGo:first-child,.arDropBody>[hidden]+.arLow:not([hidden]){margin-top:0}
+  .arDropBody .arGuide{margin-top:0}
+  body.tableOn .arPanel .agHead{display:flex}
+}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lgRefract" x="0" y="0" width="100%" height="100%">
@@ -849,10 +871,14 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
       <div class="tbBody" id="tbBody" hidden><div class="tbList" id="tbList"></div><p class="tbProg" id="arTblProg" hidden>Setting the table for Apple AR…</p></div>
     </div>
     <div class="plRow" id="plRow"><div class="plHead"><b>Serve it on</b><small id="plNote">Shows up in AR</small></div><div class="plOpts" id="plOpts" role="group" aria-label="Choose a plate"></div></div>
+    <div class="arDrop arDropViews" id="arViews"><button class="arDropBtn" aria-expanded="false" aria-controls="arViewsBody"><span>AR views</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="arDropBody" id="arViewsBody">
     <button class="btn primary arGo" id="arGo" hidden><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5z"/><path d="M12 12v5M12 12l4.5-2.5M12 12L7.5 9.5"/></svg>Open camera &amp; place dish</button>
     <button class="arLow lg" id="arApple" hidden><span class="moon">📌</span><span><b>Pin it with Apple AR</b><small>Locks to your table. Needs a well-lit table with some texture</small></span></button>
     <button class="arLow lg" id="arLow" hidden><span class="moon">🌙</span><span><b>Dark room? Low-light mode</b><small>Places the dish in front of you when the camera can’t find your table</small></span></button>
+    </div></div>
+    <div class="arDrop" id="arInstr"><button class="arDropBtn" aria-expanded="false" aria-controls="arInstrBody"><span>Instructions</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="arDropBody" id="arInstrBody">
     <div class="arSteps arGuide" id="arSteps" hidden><div class="agHead"><i><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="13" rx="2"/><path d="M11 12.5h2"/><ellipse cx="12" cy="19.6" rx="8.5" ry="2.4"/><path d="M12 15.6v1.6" stroke-dasharray="1 1.5"/></svg></i><p><b>Aim at your table</b>Hold the phone up, tilt it down and sweep slowly. The dish lands by itself.</p></div><div class="agRow"><div class="ag"><i><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5M9.8 4.7L12 2.5l2.2 2.2M9.8 19.3l2.2 2.2 2.2-2.2M4.7 9.8L2.5 12l2.2 2.2M19.3 9.8l2.2 2.2-2.2 2.2"/></svg></i><b>Move</b><small>Drag with one finger</small></div><div class="ag"><i><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="14.5" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="9.5" r="2" fill="currentColor" stroke="none"/><path d="M19.6 13.2A8 8 0 0 1 9 19.6"/><path d="M4.4 10.8A8 8 0 0 1 15 4.4"/><path d="M12.6 3.4L15 4.4l-1.1 2.3"/><path d="M11.4 20.6L9 19.6l1.1-2.3"/></svg></i><b>Rotate</b><small>Twist two fingers</small></div><div class="ag agZoom"><i><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9.5" cy="14.5" r="2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="9.5" r="2" fill="currentColor" stroke="none"/><path d="M7 17L3 21M3 21h3.6M3 21v-3.6M17 7l4-4M21 3h-3.6M21 3v3.6"/></svg></i><b>Zoom</b><small>Pinch in or out</small></div></div></div>
+    </div></div>
     <div class="arNo" id="arNo" hidden><div id="arQR"></div><p id="arNoTxt"><b>AR works on your phone.</b> Open this page in Safari on iPhone or Chrome on Android to place this dish on your table at real size.</p></div>
     <div class="arRail" id="arRail" aria-label="Choose a dish"></div>
   </div>
@@ -2132,6 +2158,14 @@ function startAR(){
   return false;
 }
 $('#arGo').addEventListener('click',()=>{ startAR() });
+// dropdowns: tap the header to open/close; a dropdown with nothing to show is hidden
+document.querySelectorAll('.arDropBtn').forEach(b=>b.addEventListener('click',()=>{ const d=b.closest('.arDrop'), on=!d.classList.contains('open');
+  d.classList.toggle('open',on); b.setAttribute('aria-expanded',on); }));
+function syncDrops(){
+  $('#arViews').classList.toggle('empty',['#arGo','#arApple','#arLow'].every(q=>$(q).hidden));
+  $('#arInstr').classList.toggle('empty',$('#arSteps').hidden);
+}
+new MutationObserver(syncDrops).observe($('.arPanel'),{subtree:true,attributes:true,attributeFilter:['hidden']}); syncDrops();
 $('#plOpts').addEventListener('click',e=>{ const b=e.target.closest('[data-plate]'); if(!b||b.dataset.plate===S.plate) return;
   S.plate=b.dataset.plate; store.set('plate',S.plate); renderPlates(); syncPlatePreview();
   if(AR.open){ updateARUI(); prepareAR(AR.id).catch(()=>{}); }
