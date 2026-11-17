@@ -677,6 +677,28 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
 </style>
 <style>.arWithout{display:block;font-size:14px;font-weight:500;letter-spacing:0;opacity:.78;margin-top:4px}</style>
+<style>
+.plRow{margin-top:12px}
+.plHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 2px 8px}
+.plHead b{font-size:14px;font-weight:700}
+.plHead small{font-size:12px;color:var(--muted)}
+.plOpts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.plOpts button{display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:5px 5px 7px;border-radius:14px;font-size:12px;font-weight:600;line-height:1.15;text-align:center;background:rgba(255,255,255,.06);border:1px solid var(--line);color:inherit;transition:all .2s}
+.plOpts img,.plOpts .none{display:block;width:100%;aspect-ratio:15/8;border-radius:9px;object-fit:cover}
+.plOpts .none{box-sizing:border-box;border:1.5px dashed rgba(255,255,255,.32);background:rgba(0,0,0,.18)}
+.plOpts button.on{background:linear-gradient(135deg,rgba(255,190,90,.85),rgba(245,124,0,.6));color:#2a1405;border-color:transparent}
+.plOpts button.on .none{border-color:rgba(42,20,5,.45);background:rgba(42,20,5,.12)}
+.plRow.off .plOpts{opacity:.38;pointer-events:none}
+@media (min-width:900px){.plOpts button{font-size:12.5px}}
+@media (max-width:899px){
+  .plRow{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .plHead{margin:0;flex:none}.plHead small{display:none}.plHead b{font-size:13px;white-space:nowrap}
+  .plOpts{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;margin-right:-16px;padding-right:16px}
+  .plOpts::-webkit-scrollbar{display:none}
+  .plOpts button{flex:none;flex-direction:row;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:12px;font-size:12px;white-space:nowrap}
+  .plOpts img,.plOpts .none{width:36px;height:20px;aspect-ratio:auto;border-radius:6px}
+}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lgRefract" x="0" y="0" width="100%" height="100%">
@@ -784,6 +806,7 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
       <div class="arSize" id="arSize"><span class="ruler">↔</span><div><b>Measuring…</b><small>real-world size</small></div></div>
       <div class="arSeg" id="arSeg" role="group" aria-label="AR scale"><button data-scale="auto" class="on">Zoom on</button><button data-scale="fixed">Lock size</button></div>
     </div>
+    <div class="plRow" id="plRow"><div class="plHead"><b>Serve it on</b><small id="plNote">Shows up in AR</small></div><div class="plOpts" id="plOpts" role="group" aria-label="Choose a plate"></div></div>
     <button class="btn primary arGo" id="arGo" hidden><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5z"/><path d="M12 12v5M12 12l4.5-2.5M12 12L7.5 9.5"/></svg>Open camera &amp; place dish</button>
     <button class="arLow lg" id="arApple" hidden><span class="moon">📌</span><span><b>Pin it with Apple AR</b><small>Locks to your table. Needs a well-lit table with some texture</small></span></button>
     <button class="arLow lg" id="arLow" hidden><span class="moon">🌙</span><span><b>Dark room? Low-light mode</b><small>Places the dish in front of you when the camera can’t find your table</small></span></button>
@@ -1185,8 +1208,9 @@ function addToCart(d,qty,size,adds,fromEl){
   const o=d.opts||OPTS[d.cat]; let unit=d.price; const labels=[];
   if(o.size){unit+=o.size[size][1]; if(size) labels.push(o.size[size][0])}
   o.adds.forEach((a,i)=>{if(adds.has(i)){unit+=a[1];labels.push(a[0])}});
+  const pl=plateFor(d); if(pl) labels.push(pl.name+' plate');
   const rem=remList(d);                                     // ingredients the guest left out (price unchanged)
-  const key=d.id+'|'+size+'|'+[...adds].sort().join(',')+'|-'+rem.join(',');
+  const key=d.id+'|'+size+'|'+[...adds].sort().join(',')+'|-'+rem.join(',')+'|'+(pl?pl.id:'');
   const ex=S.cart.find(c=>c.key===key);
   if(ex) ex.qty+=qty; else S.cart.push({key,id:d.id,name:d.name,opts:labels.join(' · '),rem:rem.map(k=>ING[k].label),unit,qty});
   fly(fromEl); setTimeout(saveCart,550);
@@ -1672,22 +1696,79 @@ function glbWithout(buf,rm){                      // Android: leave the removed 
   return new Blob([out],{type:'model/gltf-binary'});
 }
 // the AR file for a dish as the guest has it: the prebuilt file when nothing is removed (keeps the Order banner on iPhone)
-function arKey(id){ const d=BY[id]; return id+'|'+(d?remList(d).join(','):''); }
+function arKey(id){ const d=BY[id], pl=plateFor(d); return id+'|'+(d?remList(d).join(','):'')+'|'+(pl?pl.id:''); }
 const arCustomCache={};
 async function arAssetFor(d,kind){
-  const rm=remList(d), key=d.id+'|'+rm.join(','), base=await arAsset(d.model.src,kind);
-  if(!rm.length) return {...base,key};
-  const ck=key+'.'+kind; if(arCustomCache[ck]) return arCustomCache[ck];
-  const buf=await base.blob.arrayBuffer(), blob=kind==='usdz'?usdzWithout(buf,rm):glbWithout(buf,rm);
+  const rm=remList(d), pl=kind==='usdz'?plateFor(d):null, key=arKey(d.id), base=await arAsset(d.model.src,kind);
+  if(!rm.length&&!pl) return {...base,key};
+  const ck=d.id+'|'+rm.join(',')+'|'+(pl?pl.id:'')+'.'+kind; if(arCustomCache[ck]) return {...arCustomCache[ck],key};
+  const buf=await base.blob.arrayBuffer(), blob=kind==='usdz'?await usdzCustom(buf,rm,pl,d):glbWithout(buf,rm);
   for(const k in arCustomCache) if(k.startsWith(d.id+'|')&&k.endsWith('.'+kind)){ URL.revokeObjectURL(arCustomCache[k].url); delete arCustomCache[k]; }
-  return arCustomCache[ck]={url:URL.createObjectURL(blob),blob,hosted:false,key,custom:true};
+  arCustomCache[ck]={url:URL.createObjectURL(blob),blob,hosted:false,custom:true};
+  return {...arCustomCache[ck],key};
 }
 function arNoHash(d){ const rm=d?remList(d):[]; return rm.length?'~no-'+rm.join('.'):''; }
 function arHash(h){                              // "ar-<dish>~no-<ingredient>.<ingredient>" (QR codes carry what was removed)
   if(!h||!h.startsWith('ar-')) return null;
-  const [id,no]=h.slice(3).split('~no-'), d=BY[id]; if(!d) return null;
-  if(no){ const r=S.rm[id]||(S.rm[id]=new Set()); no.split('.').forEach(k=>{ if(d.ings.includes(k)&&!isLocked(d,k)) r.add(k); }); }
+  const seg=h.slice(3).split('~'), id=seg[0], d=BY[id]; if(!d) return null;
+  seg.slice(1).forEach(x=>{
+    if(x.startsWith('no-')){ const r=S.rm[id]||(S.rm[id]=new Set()); x.slice(3).split('.').forEach(k=>{ if(d.ings.includes(k)&&!isLocked(d,k)) r.add(k); }); }
+    if(x.startsWith('pl-')&&PLATES.some(p=>p.id===x.slice(3))){ S.plate=x.slice(3); store.set('plate',S.plate); }
+  });
   return id;
+}
+// ---- Plates: the guest picks one; the AR dish is served on it
+const PLATES=[{id:'none',name:'No plate'},
+  {id:'cat',name:'Lucky cats',hF:.0071,th:'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFRIWFhUSFBQXGiEcFxgfGRQUHScdHyIjJSUlFhwpLCgkKyEkJST/2wBDAQYGBgkICREJCREkGBQYJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCT/wAARCABAAHgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD5roor0n4D/Diw+JHjBrLVROdPt4vNlETbSx5wM/hXM3Y7Ernm2DRg19sf8Mv/AA1/6Bt5/wCBTUf8MvfDX/oG3n/gU1Oz7E3j3PifBowa+2P+GXvhr/0Dbz/wKaj/AIZe+Gv/AEDbz/wKaiz7BePc+J8GjBr7Y/4Ze+Gv/QNvP/ApqP8Ahl/4a/8AQNvP/ApqLPsO8e58T4NGDX2x/wAMv/DX/oG3n/gU1L/wy/8ADX/oG3n/AIFNRZ9hXj3PibBowa+2f+GX/hp/0DLz/wACmpf+GYPhn/0C7v8A8Cmos+wc0e58S4NFfbf/AAzD8Mv+gTd/+Bb181/Hf4c2Pw38ZfYNL84afcQiaEStuK+oz3pXtuNWd7M84ooopgFfU37H+heTpGr6068zSCFD7D/9Rr5Z6c191/AHQf7A+GGlRMu2SdTM/wCP+TS3aQ3pFs9GozRUV1IYbaSQHbtGc4zgdz+VanMtSWmSzRw7fMkVN52ruOMn0FVxJKyHfMOOcqu3jHc/4VUndESOUsu8sqLIW35Xr9KydVFqF2axOBk8YqGe8it4jIxLYBIVRkt7CnKHODJtb1xwF/xpHnQs0SygOoywxnArS5KWpDp18b22aaSNYirshw2RxjnP41cwazbwiMxRLEvlzSh8L1Ix82Qfwq2IEVMjcDgkEE8Uk3sxyS3RNRmsyG8mtrh45oJTC2DHKX3EjnJPp2/OtQ8GmncTVhBXzn+2DoPm6Xo2tovMMjQOfY9P519GV5z+0BoP9v8Aww1WNV3SW6idPYj/APWKmptc0o/FbufClFGc80Uiy9odg2qazZWSjJnnRMe2ef0r9FdEsF0vRrKxUYEECR49wOf1r4i+AGg/298TtLjZd0du3nP9B/k1915zRHWTYqukEu/9f5hUGoBWsLkMzIpiYFl6jjtU9IyhlKsMgjBHqK0MDBsbuO8tp4p7RwsAXMbBpGJHqCMk5H40y4Nzd4islRImj4RwFLDkEY6e2M8Z/LRubJ2GGkmGFKCWJiG2nscd/cfXiobDSrOyZktcNl/MCnBKcYAHHAGT/wB9H1rkcJI6OZDJr6dJVljt2SG4cKGkHGSTwR97op/FlwCMmtoDjOMcflVZEeNNmMsj+Yg6ZGTkfXk/pVfWJZoITPHbJIkSGVnKl2UjHAjHLEjPfiunzMN9EM1e3e6CmM/vElWJEdQVYtgk/ln8u+Ku2lwjjyFmSWSJFLlXDYB6E/XBqubiWSzjvWgEYEqy7cnd5Z4ycgYYA5I7Yoj0aCK7FwrssKbTFbIAkcTDPzDbjOdx4ORR1DpZk0+2a6SEAlk2yOccKobIH1JX9Ks1Ba/O0s/aQgJ7qB1/Mmp6aEFUdcsF1TR72xYZFxA8ePcjj9cVeoPTNDV1YcXZ3R+bmuWDaXrN9ZMMGCd0x7Z4/Siu5/aA0H+wfidqiKu2O4PnJ+P+RRWUHdI6ZpKTsXvgB480PwBr13qGr8M8eyPJ28YOcE8Z5r38ftO+Bu8rj/tqh/rXxXRk0crvox80WkpRvb1PtM/tPeBx0lc/9tU/xqKT9qDweP8AVhW/3rlB/Q18Y5NGTRaX835C/d/y/i/8z7GP7UfhvPyw22Pe+H/xFJ/w1H4fzzBZ4/6//wD7CvjrJoyaVpfzfkO9P+Rfj/mfYh/ag8OPw8FpgHIxfDI/8cq1H+1B4QI+cKp/2bpD/QV8Y5NGTRaX835Ben/Ivx/zPtIftPeCj95z/wB/0NR/8NJeAzGIzK/ljohuFx9OvT2r4xyaMn1otL+b8hXh/L+L/wAz7V/4ab8EH/luB/23SlH7TPgf/n5T/v8ApXxTk+poyfU07S7/AJB7n8v5/wCZ9sj9pfwIRzeoP+2yUv8Aw0t4E/5/k/7/ACV8S5PqaMn1NFpdxe5/L+Z6x+0J450Dx3r9nf6K6uyR7JCrbhjtk4xnjoM9KK8nopxVkEpXdz//2Q=='},
+  {id:'bluefish',name:'Blue fish',hF:.0074,th:'data:image/jpeg;base64,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'},
+  {id:'koi',name:'Koi',hF:.0071,th:'data:image/jpeg;base64,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'}];
+// plate size per dish (1 = 26 x 13 cm). Bowls and the pizza get a larger plate so they sit on it, not over the edge.
+const PLATE_FIT={tuna_taco:1,classic_poke:1.49,sushi_pizza:1.6,jalapeno_roll:1,sunkiss:1.25,sushi_burrito:1.05,miso_soup:1.08,avocado_salad:1.05};
+S.plate=store.get('plate','koi'); if(!PLATES.some(p=>p.id===S.plate)) S.plate='koi';
+function plateFor(d){ if(!d||!d.model||!PLATE_FIT[d.model.src]) return null; const p=PLATES.find(x=>x.id===S.plate); return p&&p.hF?p:null; }
+const plateCache={};
+function plateFile(name,asText){            // flat (GitHub), ar/ folder, or ar/*.txt (Claude artifact)
+  const ok=r=>{ const ct=r.headers.get('content-type')||''; if(!r.ok||/text\/html/.test(ct)) throw new Error('missing '+name); return r; };
+  const p=plateCache[name]||(plateCache[name]=fetch(name).then(ok).then(r=>r.arrayBuffer())
+    .catch(()=>fetch('ar/'+name).then(ok).then(r=>r.arrayBuffer()))
+    .catch(()=>fetch('ar/'+name+'.txt').then(ok).then(r=>r.text()).then(t=>{ const b=atob(t.trim()), u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }))
+    .catch(e=>{ delete plateCache[name]; throw e; }));
+  return asText?p.then(b=>new TextDecoder().decode(b)):p;
+}
+function cutIngredients(t,rm){
+  rm.forEach(k=>{ const open='    #<ing '+k+'>\n', close='#</ing '+k+'>\n';
+    const a=t.indexOf(open); if(a<0) return; const b=t.indexOf(close,a); if(b<0) return;
+    let e=b+close.length; while(t[e]==='\n') e++; t=t.slice(0,a)+t.slice(e); });
+  return t;
+}
+async function usdzCustom(buf,rm,pl,d){      // iPhone: removed ingredients cut out, dish lifted onto the chosen plate
+  const files=unzipStored(buf), f=files.find(x=>/\.usda$/.test(x.name));
+  if(!f) throw new Error('AR file has no scene');
+  let t=cutIngredients(new TextDecoder().decode(f.data),rm);
+  if(pl){
+    const [snip,tex,glow]=await Promise.all([plateFile('plate_'+pl.id+'.usda',true),plateFile('plate_'+pl.id+'.jpg'),plateFile('plate_'+pl.id+'_glow.jpg')]);
+    const lift=(pl.hF+.0004).toFixed(4);
+    t=t.replace(/(    def Mesh "ing_\w+"\n    \{\n)/g,'$1        double3 xformOp:translate = (0, '+lift+', 0)\n        uniform token[] xformOpOrder = ["xformOp:translate"]\n');
+    const end=t.lastIndexOf('}'); t=t.slice(0,end)+snip.replace(/__PS__/g,String(PLATE_FIT[d.model.src]))+t.slice(end);
+    files.push({name:'plate_'+pl.id+'.jpg',data:new Uint8Array(tex)},{name:'plate_'+pl.id+'_glow.jpg',data:new Uint8Array(glow)});
+  }
+  f.data=new TextEncoder().encode(t);
+  return zipUSDZ(files);
+}
+function syncPlatePreview(){                 // the dish on the AR screen sits on the chosen plate too
+  if(typeof V==='undefined'||!V||!V.setPlate) return;
+  const d=BY[AR.id], pl=AR.open&&plateFor(d);
+  if(!pl){ V.setPlate(null); return; }
+  const a=AR_ASSETS[d.model.src];
+  plateFile('plate_'+pl.id+'.glb').then(buf=>{ if(!AR.open||BY[AR.id]!==d||plateFor(d)!==pl) return;
+    V.setPlate({buf,id:pl.id,dish:d.id,hF:pl.hF,ps:PLATE_FIT[d.model.src],w:Math.max(a.w,a.d)}); }).catch(e=>console.warn('plate',e));
+}
+function renderPlates(){
+  const d=BY[AR.id], ok=!!(d&&d.model&&PLATE_FIT[d.model.src]);
+  $('#plOpts').innerHTML=PLATES.map(p=>`<button data-plate="${p.id}" class="${S.plate===p.id?'on':''}" aria-pressed="${S.plate===p.id}">${p.th?`<img src="${p.th}" alt="">`:'<span class="none" aria-hidden="true"></span>'}<span class="pn">${esc(p.name)}</span></button>`).join('');
+  $('#plRow').classList.toggle('off',!ok);
+  $('#plNote').textContent=ok?'Shows up in AR':'This one comes on its own tray';
+  const on=$('#plOpts .on'), r=$('#plOpts'); if(on&&r.scrollWidth>r.clientWidth) r.scrollLeft=on.offsetLeft-r.clientWidth/2+on.offsetWidth/2;
 }
 function quickLookOK(){ const a=document.createElement('a'); return !!(a.relList&&a.relList.supports&&a.relList.supports('ar')); }
 function openQuickLook(url){
@@ -1829,7 +1910,7 @@ function openAR(id,launch){
   setTabUI('ar');
   llCheckXR(); if(arEnv()==='android') llBuf(d).catch(()=>{});
   { const rl=remList(d); $('#arName').innerHTML=esc(d.name)+(rl.length?`<small class="arWithout">without ${esc(rl.map(k=>ING[k].label).join(', '))}</small>`:''); }
-  renderArRail();
+  renderArRail(); renderPlates(); syncPlatePreview();
   try{history.replaceState(null,'','#ar-'+id)}catch(e){}
   const ready=(AR.mv||AR.ql)&&AR.mvId===arKey(id)&&AR.loaded;
   if(launch&&(ready||(arEnv()==='ios'&&camOK()))&&startAR()) { updateARUI(); if(!ready) prepareAR(id).catch(()=>{}); return; }
@@ -1869,7 +1950,7 @@ async function showQR(){
     $('#arNoTxt').innerHTML='<b>The camera opens on your phone.</b> Put this page online, then open it in Safari on iPhone or Chrome on Android to place the dish on your table.';return;
   }
   $('#arNoTxt').innerHTML='<b>Scan with your phone.</b> Your camera opens and the dish lands on your table at real size. Works in Safari on iPhone and Chrome on Android.';
-  try{await loadQR(); new QRCode(box,{text:location.href.split('#')[0]+'#ar-'+AR.id+arNoHash(BY[AR.id]),width:240,height:240,colorDark:'#1a0f08',colorLight:'#ffffff'})}catch(e){}
+  try{await loadQR(); new QRCode(box,{text:location.href.split('#')[0]+'#ar-'+AR.id+arNoHash(BY[AR.id])+'~pl-'+S.plate,width:240,height:240,colorDark:'#1a0f08',colorLight:'#ffffff'})}catch(e){}
 }
 function camOK(){ return !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia); }
 function startAR(){
@@ -1881,6 +1962,10 @@ function startAR(){
   return false;
 }
 $('#arGo').addEventListener('click',()=>{ startAR() });
+$('#plOpts').addEventListener('click',e=>{ const b=e.target.closest('[data-plate]'); if(!b||b.dataset.plate===S.plate) return;
+  S.plate=b.dataset.plate; store.set('plate',S.plate); renderPlates(); syncPlatePreview();
+  if(AR.open){ updateARUI(); prepareAR(AR.id).catch(()=>{}); }
+  const p=PLATES.find(x=>x.id===S.plate); toast(p.hF?`Served on the ${p.name} plate`:'Served without a plate'); });
 $('#arSeg').addEventListener('click',e=>{
   const b=e.target.closest('[data-scale]'); if(!b) return;
   AR.scale=b.dataset.scale; $('#arSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
@@ -1943,10 +2028,17 @@ async function llModel(d){
   const box=new T.Box3().setFromObject(model), sz=box.getSize(new T.Vector3()), c=box.getCenter(new T.Vector3());
   model.position.set(-c.x,-box.min.y,-c.z);
   const holder=new T.Group(); holder.add(model);
+  let fw=sz.x, fd=sz.z; const pl=plateFor(d);
+  if(pl) try{
+    const pb=await plateFile('plate_'+pl.id+'.glb'), pg=await new Promise((res,rej)=>parseGLB(pb.slice(0),res,rej));
+    await fixTextures(pg.scene,pb.slice(0)); const ps=PLATE_FIT[d.model.src];
+    pg.scene.scale.set(ps,1,ps); holder.add(pg.scene); model.position.y+=pl.hF+.0004;
+    fw=Math.max(fw,.26*ps); fd=Math.max(fd,.13*ps);
+  }catch(e){ console.warn('plate',e); }
   // soft contact shadow so it sits on the table
   const cv=document.createElement('canvas'); cv.width=cv.height=128; const g=cv.getContext('2d'), gr=g.createRadialGradient(64,64,6,64,64,64);
   gr.addColorStop(0,'rgba(0,0,0,.55)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,128,128);
-  const sh=new T.Mesh(new T.PlaneGeometry(sz.x*1.45,sz.z*1.45),new T.MeshBasicMaterial({map:new T.CanvasTexture(cv),transparent:true,depthWrite:false}));
+  const sh=new T.Mesh(new T.PlaneGeometry(fw*1.3,fd*1.45),new T.MeshBasicMaterial({map:new T.CanvasTexture(cv),transparent:true,depthWrite:false}));
   sh.rotation.x=-Math.PI/2; sh.position.y=.0015; sh.renderOrder=-1; holder.add(sh);
   return {holder,size:sz};
 }
@@ -2480,7 +2572,7 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     const s=3.0/Math.max(size.x,size.z,size.y*1.25,1e-3);
     content.position.set(-ctr.x,-box.min.y,-ctr.z);
     const wrap=new THREE.Group(); wrap.add(content); wrap.scale.setScalar(s);
-    wrap.userData={s,parts:content.children,content,disposable,height:size.y*s};
+    wrap.userData={s,parts:content.children,content,disposable,height:size.y*s,sizeXZ:Math.max(size.x,size.z)};
     return wrap;
   }
 
@@ -2577,6 +2669,15 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     current=wrap; const s=wrap.userData.s; wrap.scale.setScalar(.0001); turn.add(wrap);
     tween(1.1,p=>{wrap.scale.setScalar(Math.max(.0001,s*elastic(p)));wrap.rotation.y=(1-p)*-1.6},null,old?.18:.1);
     manualT=0; $('#explodeBtn').classList.remove('on'); boost=1;
+  }
+  let plateObj=null, plateReq=null;
+  function setPlate(req){
+    if(req&&plateReq&&req.id===plateReq.id&&req.dish===plateReq.dish) return;
+    plateReq=req; if(plateObj){ turn.remove(plateObj); plateObj=null; }
+    if(!req) return;
+    parseGLB(req.buf.slice(0),g=>{ fixTextures(g.scene,req.buf.slice(0)).then(()=>{ if(plateReq!==req) return;
+      g.scene.traverse(o=>{ if(o.isMesh){ o.receiveShadow=true; const m=o.material; if(m&&'envMapIntensity' in m) m.envMapIntensity=.5; } });
+      plateObj=g.scene; plateObj.userData.req=req; turn.add(plateObj); }); },e=>console.warn('plate',e));
   }
   function show(d){
     for(const gk in GK) delete GK[gk];
@@ -2694,7 +2795,7 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     let T;
     if(arMode){
       const mobA=innerWidth<900;
-      T=mobA?{x:0,y:.4,s:.72,ex:0,focus:null}:{x:-(462/innerWidth),y:-.02,s:1.05,ex:0,focus:null};
+      T=mobA?{x:0,y:.47,s:.72,ex:0,focus:null}:{x:-(462/innerWidth),y:-.02,s:1.05,ex:0,focus:null};
     } else T=targetPose();
     if(first){KEYS.forEach(k=>P[k]=T[k]);first=false}
     const a=Math.min(1,dt*4); KEYS.forEach(k=>P[k]+=(T[k]-P[k])*a);
@@ -2720,6 +2821,11 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     if(autoSpin&&!drag) spin+=dt*.3;
     if(!drag){dragYaw+=vel;vel*=Math.pow(.04,dt)}
     turn.rotation.y=spin+dragYaw+(arMode?0:scrollY*.0018);
+    { const r=plateObj&&plateObj.userData.req, on=!!(r&&arMode&&current&&current.userData.sizeXZ&&current.userData.dishId===r.dish);
+      if(plateObj) plateObj.visible=on;
+      if(on){ const k=current.userData.sizeXZ*current.userData.s/r.w, f=Math.min(1,2/(.1453*r.ps*k));   // plate fits on the pedestal
+        plateObj.scale.set(r.ps*k,k,r.ps*k); plateObj.position.y=-r.hF*k; turn.scale.setScalar(f); turn.position.y=r.hF*k*f; }
+      else if(turn.scale.x!==1||turn.position.y){ turn.scale.setScalar(1); turn.position.y=0; } }
     // explode (scroll-driven at ingredients, or manual button)
     manualE+=(manualT-manualE)*Math.min(1,dt*4.5);
     const ex=Math.max(P.ex,manualE), ee0=ex*ex*(3-2*ex), sm=x=>x*x*(3-2*x);
@@ -2890,8 +2996,8 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     }
     return partCache[d.id]=out;
   }
-  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures,glbBuf,partKey},show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
-  if(AR.open) V.setAR(true);
+  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures,glbBuf,partKey},setPlate,show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
+  if(AR.open){ V.setAR(true); syncPlatePreview(); }
   loadPartImgs(S.dish);
   show(S.dish);
   loop();
