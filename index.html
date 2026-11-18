@@ -759,6 +759,30 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
   body.tableOn .arPanel .agHead{display:flex}
 }
 </style>
+<style>
+.algBar{margin:2px 0 14px;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.algBar.pulse{animation:algPulse 1.2s ease}
+@keyframes algPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,80,60,0)}30%{box-shadow:0 0 0 4px rgba(255,80,60,.45)}}
+.algHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:9px}
+.algHead b{font-size:14px}.algHead small{font-size:12px;color:var(--muted)}
+.algChips{display:flex;flex-wrap:wrap;gap:6px}
+.algChip{padding:7px 12px;border-radius:12px;font-size:12.5px;font-weight:600;color:var(--muted);background:rgba(255,255,255,.06);border:1px solid var(--line);transition:all .2s}
+.algChip.on{color:#fff;background:rgba(230,50,40,.85);border-color:transparent}
+.algClear{padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.algNote{font-size:11.5px;color:var(--dim,#9b8a7c);margin-top:8px}
+.mrow.flag{opacity:.62}
+.mrow.flag .th{filter:grayscale(.6)}
+.algTag{display:inline-block;margin-left:6px;font-size:11.5px;font-weight:700;color:#ff8a7a;background:rgba(230,50,40,.16);border:1px solid rgba(255,100,80,.4);border-radius:8px;padding:2px 7px}
+.allerg span.hit{color:#fff;background:rgba(230,50,40,.85);border-color:transparent}
+.algOpen{margin-left:10px;font-size:12px;font-weight:700;padding:5px 10px;border-radius:10px;color:#ffb3a8;background:rgba(230,50,40,.14);border:1px solid rgba(255,100,80,.35);vertical-align:middle}
+.algAlert{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:10px;padding:9px 12px;border-radius:14px;background:rgba(200,35,25,.82);color:#fff;max-width:440px;text-align:left;box-shadow:0 8px 24px rgba(120,10,0,.35)}
+.algAlert b{font-size:13.5px}.algAlert span{font-size:12.5px;opacity:.92;flex-basis:100%}
+.algAlert button{font-size:12.5px;font-weight:800;padding:6px 11px;border-radius:10px;background:#fff;color:#a01810}
+.algAlert.ok{background:rgba(40,140,70,.85);box-shadow:none}
+.ingp.alg .panel{box-shadow:0 0 0 2px rgba(255,70,50,.8),0 10px 30px rgba(200,30,20,.25)}
+.algTagI{display:inline-block;margin:2px 0 6px;font-size:12px;font-weight:800;color:#fff;background:rgba(220,40,30,.9);border-radius:8px;padding:3px 8px}
+@media (min-width:900px){.algAlert{margin-left:auto;max-width:300px}}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lgRefract" x="0" y="0" width="100%" height="100%">
@@ -829,6 +853,7 @@ body.xrOn .arStage,body.xrOn .arStage model-viewer{opacity:1!important;pointer-e
     <div class="ovSearch lg"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input id="oq" type="text" placeholder="Filter the menu" autocomplete="off" aria-label="Filter the menu"></div>
     <div class="chips" id="chips" role="tablist" aria-label="Categories"></div>
+    <div class="algBar" id="algBar"><div class="algHead"><b>Allergies &amp; diet</b><small>Dishes that contain them are flagged</small></div><div class="algChips" id="algChips" role="group" aria-label="Allergies and diet"></div><p class="algNote">Always tell your server about allergies. Kitchens share equipment.</p></div>
     <div id="menuList"></div>
   </div>
 </section>
@@ -1165,6 +1190,7 @@ function syncRemovedUI(id){
   });
   if(S.item&&S.item.id===id&&$('#itemModal').classList.contains('open')) renderItem();
   if($('#orderView').classList.contains('open')) renderMenu();
+  syncAllergyUI();
 }
 
 function thumbHTML(d){
@@ -1405,6 +1431,59 @@ function observeReveals(){
 }
 // phones: size the dish name so it sits on one line under the header (very long names wrap to two)
 function bigFs(n){ const w=Math.min(innerWidth,520)-28; return Math.max(34,Math.min(84,Math.floor(w/(n.length*.68)))); }
+// ---- Allergen & diet filters
+const AVOID=[{id:'shellfish',label:'Shellfish',a:['Shellfish']},{id:'fish',label:'Fish',a:['Fish']},{id:'sesame',label:'Sesame',a:['Sesame']},
+  {id:'soy',label:'Soy',a:['Soy']},{id:'gluten',label:'Gluten',a:['Gluten']},{id:'egg',label:'Egg',a:['Egg']},{id:'dairy',label:'Dairy',a:['Milk']},
+  {id:'veg',label:'Vegetarian',a:['Fish','Shellfish'],diet:true}];
+// which ingredient carries each allergen (only counted when the dish itself lists that allergen)
+const ING_ALG={
+  Fish:['salmon','tuna','ahiTuna','tobiko','blackTobiko','syakeNigiri','maguroNigiri','hamachiNigiri','unagiNigiri','hosomaki','geisha','atomic','dashi','furikake','kanikama','crabstick'],
+  Shellfish:['shrimp','ebiNigiri','hotateNigiri','crab','kanikama','crabstick'],
+  Sesame:['sesame','togarashi','furikake','gingerDressing','chiliMayo','geisha','atomic'],
+  Soy:['pokeSauce','toroSauce','unagiSauce','unagiNigiri','misoPaste','edamame','gingerDressing','chiliMayo','furikake'],
+  Gluten:['wonton','wontonCrisp','crunch','pokeSauce','toroSauce','unagiSauce','misoPaste','mozzaRice','kanikama','crabstick','chiliMayo'],
+  Egg:['mayo','chiliMayo','wontonCrisp','kanikama','crabstick'],
+  Milk:['mozzaRice']};
+S.avoid=new Set(store.get('avoid',[]).filter(id=>AVOID.some(a=>a.id===id)));
+function avoidAllergens(){ const out=new Set(); AVOID.forEach(f=>{ if(S.avoid.has(f.id)) f.a.forEach(x=>out.add(x)); }); return out; }
+// what in this dish clashes with the filters: per allergen, the ingredients that carry it (minus any the guest removed)
+function dishClash(d){
+  const want=avoidAllergens(), rm=S.rm[d.id], out=[];
+  if(!want.size) return out;
+  (d.allergens||[]).forEach(a=>{ if(!want.has(a)) return;
+    const src=(ING_ALG[a]||[]).filter(k=>d.ings.includes(k));
+    const left=src.filter(k=>!(rm&&rm.has(k)));
+    if(src.length&&!left.length) return;                 // every ingredient with it has been left out
+    out.push({a,ings:left,hidden:!src.length}); });         // hidden: it's in a sauce or base we don't model as its own piece
+  return out;
+}
+function clashWords(c){ return c.map(x=>({Milk:'dairy'})[x.a]||x.a.toLowerCase()); }
+function syncAllergyUI(){
+  const d=S.dish; if(!d) return;
+  const c=dishClash(d), red=new Set(); c.forEach(x=>x.ings.forEach(k=>red.add(k)));
+  if(typeof V!=='undefined'&&V&&V.setAvoid) V.setAvoid(red);
+  document.querySelectorAll('#ingList .ingp').forEach(el=>{
+    const k=el.dataset.ing, hit=c.filter(x=>x.ings.includes(k)).map(x=>({Milk:'Dairy'})[x.a]||x.a);
+    el.classList.toggle('alg',!!hit.length);
+    let t=el.querySelector('.algTagI'); if(!hit.length){ if(t) t.remove(); return; }
+    if(!t){ t=document.createElement('div'); t.className='algTagI'; el.querySelector('.panel h3').before(t); }
+    t.textContent='⚠ Contains '+hit.join(', ').toLowerCase();
+  });
+  document.querySelectorAll('[data-algopen]').forEach(b=>b.textContent=S.avoid.size?'⚠ Filters on':'Allergies?');
+  const top=document.querySelector('#heroInfo .heroTitle'); if(!top) return;
+  let al=$('#algAlert');
+  if(!S.avoid.size){ if(al) al.remove(); return; }
+  if(!al){ al=document.createElement('div'); al.id='algAlert'; al.className='algAlert'; top.appendChild(al); }
+  const ok=!c.length, names=[...red].map(k=>ING[k].label), rmable=[...red].filter(k=>!isLocked(d,k));
+  al.classList.toggle('ok',ok);
+  al.innerHTML=ok?`<b>✓ Fits your filters</b><span>No ${esc(AVOID.filter(f=>S.avoid.has(f.id)).map(f=>f.diet?'meat or fish':f.label.toLowerCase()).join(', '))} as you’ve ordered it</span>`
+    :`<b>⚠ Contains ${esc(clashWords(c).join(', '))}</b><span>${names.length?`${esc(names.join(', '))} ${names.length>1?'are':'is'} glowing red`:'It’s in the sauce or base'}${c.some(x=>x.hidden)&&names.length?', and some is in the sauce or base':''}</span>`
+     +(rmable.length&&!c.some(x=>x.hidden)&&rmable.length===red.size?`<button data-algrm="${rmable.join(',')}">Leave ${rmable.length>1?'them':'it'} out</button>`:'');
+}
+function renderAlg(){
+  $('#algChips').innerHTML=AVOID.map(f=>`<button class="algChip ${S.avoid.has(f.id)?'on':''}" data-avoid="${f.id}" aria-pressed="${S.avoid.has(f.id)}">${f.diet?'🌱 ':'No '}${f.diet?f.label:f.label.toLowerCase()}</button>`).join('')
+    +(S.avoid.size?'<button class="algClear" data-avoidclear>Clear</button>':'');
+}
 function renderStory(){
   const d=S.dish;
   const bn=$('#bigname'); bn.textContent=shortName(d);
@@ -1414,7 +1493,7 @@ function renderStory(){
       <div class="tagrow rv">${tagsHTML(d)}</div>
       <div class="heroTitle">
         <h1 class="rv" style="--i:1">${esc(d.name)}</h1>
-        <div class="meta rv" style="--i:2"><span class="price">${money(d.price)}</span>${d.pcs?`<span>· ${d.pcs} pieces</span>`:''}${priceTag(d)}</div>
+        <div class="meta rv" style="--i:2"><span class="price">${money(d.price)}</span>${d.pcs?`<span>· ${d.pcs} pieces</span>`:''}${priceTag(d)}<button class="algOpen" data-algopen aria-label="Allergy and diet filters">${S.avoid.size?'⚠ Filters on':'Allergies?'}</button></div>
       </div>
     </div>
     <div class="heroBottom">
@@ -1448,6 +1527,7 @@ function renderStory(){
   observeReveals();
   loadPartImgs(d);
   syncRemovedUI(d.id);
+  syncAllergyUI();
 }
 function applyPartImgs(d,imgs){
   if(S.dish!==d) return;
@@ -1513,6 +1593,7 @@ function renderChips(){
 }
 $('#chips').addEventListener('click',e=>{const c=e.target.closest('[data-cat]');if(!c)return;S.cat=c.dataset.cat;renderChips();renderMenu()});
 function renderMenu(){
+  renderAlg();
   const raw=$('#oq').value, q=norm(raw);
   let list=q?DISHES.filter(d=>score(d,q)>0):DISHES;
   if(S.tab==='saved') list=list.filter(d=>S.favs.has(d.id));
@@ -1523,10 +1604,10 @@ function renderMenu(){
   $('#menuList').innerHTML=CATS.filter(c=>c.id!=='all').map(c=>{
     const items=list.filter(d=>d.cat===c.id); if(!items.length) return '';
     return `<div class="mgroup"><h3>${c.e} ${c.label} <small>${items.length}</small></h3>${items.map(d=>`
-      <div class="mrow glass" data-item="${d.id}" role="button" tabindex="0">
+      <div class="mrow glass${dishClash(d).length?' flag':''}" data-item="${d.id}" role="button" tabindex="0">
         <div class="th" data-th="${d.id}">${thumbHTML(d)}</div>
         <div class="mi"><b>${esc(d.name)}${S.favs.has(d.id)?' <span style="color:#ff4d5e">♥</span>':''}</b><small>${esc(d.desc)}</small>
-          <span class="pr">${money(d.price)}</span> ${d.real?'':'<span class="src">sample</span>'}${remList(d).length?`<span class="rmTag">${remList(d).length} removed</span>`:''}</div>
+          <span class="pr">${money(d.price)}</span> ${d.real?'':'<span class="src">sample</span>'}${remList(d).length?`<span class="rmTag">${remList(d).length} removed</span>`:''}${(c=>c.length?`<span class="algTag">⚠ ${esc(clashWords(c).join(', '))}</span>`:'')(dishClash(d))}</div>
         <div class="mbtns">
           <button class="mb mb3d" data-view="${d.id}" aria-label="View ${esc(d.name)} in 3D"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>View 3D</button>
           <button class="mb mbfav heart ${S.favs.has(d.id)?'on':''}" data-fav="${d.id}" aria-label="Save ${esc(d.name)}">${HEART}</button>
@@ -1536,6 +1617,13 @@ function renderMenu(){
   }).join('');
 }
 $('#oq').addEventListener('input',renderMenu);
+$('#algChips').addEventListener('click',e=>{
+  if(e.target.closest('[data-avoidclear]')) S.avoid.clear();
+  else { const b=e.target.closest('[data-avoid]'); if(!b) return; const id=b.dataset.avoid; S.avoid.has(id)?S.avoid.delete(id):S.avoid.add(id); }
+  store.set('avoid',[...S.avoid]); renderMenu(); syncAllergyUI(); });
+document.addEventListener('click',e=>{ if(e.target.closest('[data-algopen]')){ openOrder(); requestAnimationFrame(()=>{ const a=$('#algBar'); a.scrollIntoView({block:'start'}); a.classList.remove('pulse'); void a.offsetWidth; a.classList.add('pulse'); }); } });
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-algrm]'); if(!b||!S.dish) return;
+  b.dataset.algrm.split(',').forEach(k=>{ if(V&&V.removeAnim) V.removeAnim(k); removeIng(S.dish.id,k); }); });
 let menuPD=0;
 function menuButton(b){
   if(b.dataset.view){closeOrder();setDish(b.dataset.view,true);return}
@@ -1618,7 +1706,7 @@ function renderItem(){
       ${o.adds.map((a,i)=>`<div class="row"><span class="l">${a[0]}${a[1]?`<small>+${money(a[1])}</small>`:''}</span><button class="tog ${S.adds.has(i)?'on':''}" data-add="${i}" role="switch" aria-checked="${S.adds.has(i)}" aria-label="${esc(a[0])}"></button></div>`).join('')}
     </div>
     ${remList(d).length?`<div class="sec"><h4>Removed</h4><div class="rmChips">${rmChipsHTML(d)}</div><p class="rmNote">${RM_NOTE}</p></div>`:''}
-    <div class="sec"><h4>Contains</h4><div class="allerg">${d.allergens.map(a=>`<span>${a}</span>`).join('')}</div>
+    <div class="sec"><h4>Contains</h4><div class="allerg">${d.allergens.map(a=>`<span class="${avoidAllergens().has(a)?'hit':''}">${a}</span>`).join('')}</div>
       <p class="note">Options and allergens are placeholders. Confirm with the restaurant before launch.</p></div>`;
   updateBuy();
 }
@@ -2877,6 +2965,7 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     tween(1.1,p=>{wrap.scale.setScalar(Math.max(.0001,s*elastic(p)));wrap.rotation.y=(1-p)*-1.6},null,old?.18:.1);
     manualT=0; $('#explodeBtn').classList.remove('on'); boost=1;
   }
+  let avoidSet=new Set(); const TINT_RED=new THREE.Color('#ff2a1c'), GLOW_RED=new THREE.Color('#ff1e12'), GLOW_ORG=new THREE.Color('#ff7a1a');
   let plateObj=null, plateReq=null;
   function setPlate(req){
     if(req&&plateReq&&req.id===plateReq.id&&req.dish===plateReq.dish) return;
@@ -3074,6 +3163,9 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     for(const m of Object.values(M)){
       if(!m.userData.em){m.emissive.set('#ff7a1a');m.userData.em=1}
       const ing=m.userData.ing; let v=0;
+      const bad=!!(ing&&avoidSet.has(ing)); if(bad!==!!m.userData.bad){ m.emissive.copy(bad?GLOW_RED:GLOW_ORG); m.userData.bad=bad;
+        if(m.color){ if(!m.userData.col0) m.userData.col0=m.color.clone(); if(bad) m.color.copy(m.userData.col0).lerp(TINT_RED,.6); else m.color.copy(m.userData.col0); } }
+      if(bad) v=.42+.2*Math.sin(t*.004);
       if(ing&&ing===focus) v=.22+.16*Math.sin(t*.005);
       if(ing&&flash[ing]) v=Math.max(v,Math.sin(Math.min(1,flash[ing])*Math.PI)*.9);
       m.emissiveIntensity=v;
@@ -3203,8 +3295,9 @@ DISHES.forEach(d=>{ if(d.photo){ const src=photoSrc(d); if(src) S.thumbs[d.id]=s
     }
     return partCache[d.id]=out;
   }
-  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures,glbBuf,partKey},setPlate,show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
+  V={lib:{THREE,GLTFLoader,parseGLB,fixTextures,glbBuf,partKey},setPlate,setAvoid:s=>{avoidSet=s||new Set()},show,highlight,celebrate,loadGLB,exportAR,partImages,removeAnim,restoreAnim,pause:b=>{paused=b;if(!b)clock.getDelta()},setAR:b=>{arMode=b;if(b){paused=false;clock.getDelta()}}};
   if(AR.open){ V.setAR(true); syncPlatePreview(); }
+  syncAllergyUI();
   loadPartImgs(S.dish);
   show(S.dish);
   loop();
