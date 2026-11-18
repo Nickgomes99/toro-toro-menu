@@ -1165,7 +1165,7 @@ function lockMsg(k){return `${ING[k].label} ${LOCK_WHY[k]||'is part of the base'
 function removeIng(id,k){
   const d=BY[id]; if(!d||!ING[k]) return false;
   if(isLocked(d,k)){toast(lockMsg(k));return false}
-  (S.rm[id]||(S.rm[id]=new Set())).add(k); syncRemovedUI(id);
+  (S.rm[id]||(S.rm[id]=new Set())).add(k); syncRemovedUI(id); track('rm_'+id+'_'+k,true);
   toast(`${ING[k].label} removed`); return true;
 }
 function restoreIng(id,k){ const r=S.rm[id]; if(!r||!r.has(k)) return; r.delete(k); if(S.dish&&S.dish.id===id&&V&&V.restoreAnim) V.restoreAnim(k); syncRemovedUI(id); toast(`${ING[k].label} added back`); }
@@ -1307,7 +1307,7 @@ function addToCart(d,qty,size,adds,fromEl){
   const key=d.id+'|'+size+'|'+[...adds].sort().join(',')+'|-'+rem.join(',')+'|'+(pl?pl.id:'');
   const ex=S.cart.find(c=>c.key===key);
   if(ex) ex.qty+=qty; else S.cart.push({key,id:d.id,name:d.name,opts:labels.join(' · '),rem:rem.map(k=>ING[k].label),unit,qty});
-  fly(fromEl); setTimeout(saveCart,550);
+  fly(fromEl); setTimeout(saveCart,550); track('cart_'+d.id);
   toast(`Added ${qty>1?qty+' × ':''}${d.name}`);
 }
 function fly(fromEl){
@@ -1484,8 +1484,24 @@ function renderAlg(){
   $('#algChips').innerHTML=AVOID.map(f=>`<button class="algChip ${S.avoid.has(f.id)?'on':''}" data-avoid="${f.id}" aria-pressed="${S.avoid.has(f.id)}">${f.diet?'🌱 ':'No '}${f.diet?f.label:f.label.toLowerCase()}</button>`).join('')
     +(S.avoid.size?'<button class="algClear" data-avoidclear>Clear</button>':'');
 }
+// ---- Analytics: anonymous counters (no personal data). Viewed on analytics.html.
+// Off for local files and with ?noanalytics in the link (use that when testing so you don't skew the numbers).
+const AN={ns:'torotoro-3dmenu-nickgomes99',base:'https://abacus.jasoncameron.dev',q:[],busy:false,
+  off:location.protocol==='file:'||/^(localhost|127\.)/.test(location.hostname)||/[?&]noanalytics/.test(location.search)};
+try{ if(/[?&]noanalytics/.test(location.search)) localStorage.setItem('tt3d.noanalytics','1'); if(localStorage.getItem('tt3d.noanalytics')==='1') AN.off=true; }catch(e){}
+function track(key,once){
+  if(AN.off||!key) return;
+  key=String(key).replace(/[^A-Za-z0-9_.-]/g,'').slice(0,64); if(key.length<3) return;
+  if(once){ try{ const k='tt3d.an.'+key; if(sessionStorage.getItem(k)) return; sessionStorage.setItem(k,'1'); }catch(e){} }
+  AN.q.push(key); anPump();
+}
+function anPump(){                                  // one at a time, spaced out (the service allows 30 per 10 s)
+  if(AN.busy||!AN.q.length) return; AN.busy=true; const k=AN.q.shift();
+  fetch(AN.base+'/hit/'+AN.ns+'/'+encodeURIComponent(k),{mode:'cors',keepalive:true,cache:'no-store'}).catch(()=>{})
+    .finally(()=>setTimeout(()=>{ AN.busy=false; anPump(); },400));
+}
 function renderStory(){
-  const d=S.dish;
+  const d=S.dish; track('open_'+d.id,true);
   const bn=$('#bigname'); bn.textContent=shortName(d);
   bn.style.setProperty('--bfs',bigFs(shortName(d))+'px'); bn.classList.remove('swap'); void bn.offsetWidth; bn.classList.add('swap');
   $('#heroInfo').innerHTML=`
@@ -1619,7 +1635,7 @@ function renderMenu(){
 $('#oq').addEventListener('input',renderMenu);
 $('#algChips').addEventListener('click',e=>{
   if(e.target.closest('[data-avoidclear]')) S.avoid.clear();
-  else { const b=e.target.closest('[data-avoid]'); if(!b) return; const id=b.dataset.avoid; S.avoid.has(id)?S.avoid.delete(id):S.avoid.add(id); }
+  else { const b=e.target.closest('[data-avoid]'); if(!b) return; const id=b.dataset.avoid; if(S.avoid.has(id)) S.avoid.delete(id); else { S.avoid.add(id); track('avoid_'+id,true); } }
   store.set('avoid',[...S.avoid]); renderMenu(); syncAllergyUI(); });
 document.addEventListener('click',e=>{ if(e.target.closest('[data-algopen]')){ openOrder(); requestAnimationFrame(()=>{ const a=$('#algBar'); a.scrollIntoView({block:'start'}); a.classList.remove('pulse'); void a.offsetWidth; a.classList.add('pulse'); }); } });
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-algrm]'); if(!b||!S.dish) return;
@@ -2236,7 +2252,12 @@ async function showQR(){
   try{await loadQR(); new QRCode(box,{text:location.href.split('#')[0]+'#ar-'+AR.id+(tableOn()?'~tbl-'+S.table.items.map(i=>i.id+(i.rm.length?':'+i.rm.join('.'):'')).join(','):arNoHash(BY[AR.id]))+'~pl-'+S.plate,width:240,height:240,colorDark:'#1a0f08',colorLight:'#ffffff'})}catch(e){}
 }
 function camOK(){ return !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia); }
-function startAR(){
+function trackAR(){ const d=BY[AR.id]; if(!d) return;
+  if(tableOn()){ track('table_ar'); S.table.items.forEach(i=>track('ar_'+i.id)); }
+  else track('ar_'+d.id);
+  track('plate_'+(plateFor(d)?S.plate:'none')); }
+function startAR(){ const ok=startAR0(); if(ok) trackAR(); return ok; }
+function startAR0(){
   if(arEnv()==='ios'&&camOK()&&!LL.on){ llStartCam(BY[AR.id]); return true; }
   if(AR.mvId!==arKeyNow()) return false;
   if(AR.ql&&AR.ql.key===arKeyNow()){ if(!quickLookOK()) return false; openQuickLook(AR.ql.url); return true; }
@@ -2525,7 +2546,7 @@ async function llLaunch(){
   if(arEnv()==='android'&&LL.xrOK) return llStartXR(d);
   return llStartCam(d);
 }
-$('#arLow').addEventListener('click',llLaunch);
+$('#arLow').addEventListener('click',()=>{ trackAR(); llLaunch(); });
 function appleAR(){
   const u=AR.ql&&AR.ql.key===arKeyNow()?AR.ql.url:null;
   if(!u||!quickLookOK()){ toast('Apple AR is still loading. Try again in a second'); return; }
@@ -2533,7 +2554,7 @@ function appleAR(){
   $('#qlTips').classList.add('open'); $('#qlTips').setAttribute('aria-hidden','false');
 }
 function closeQLTips(){ $('#qlTips').classList.remove('open'); $('#qlTips').setAttribute('aria-hidden','true'); }
-$('#qlGo').addEventListener('click',()=>{ const u=AR.ql&&AR.ql.key===arKeyNow()?AR.ql.url:null; closeQLTips(); if(u) openQuickLook(u); });
+$('#qlGo').addEventListener('click',()=>{ trackAR(); const u=AR.ql&&AR.ql.key===arKeyNow()?AR.ql.url:null; closeQLTips(); if(u) openQuickLook(u); });
 $('#qlTips').addEventListener('click',e=>{ if(e.target.id==='qlTips') closeQLTips(); }); $('#qlSkip').addEventListener('click',closeQLTips);
 $('#arApple').addEventListener('click',appleAR); $('#llApple').addEventListener('click',appleAR);
 $('#llClose').addEventListener('click',()=>{ LL.end&&LL.end(); });
@@ -2543,6 +2564,7 @@ window.addEventListener('hashchange',()=>{const id=arHash(location.hash.slice(1)
 /* =========================================================
    BOOT UI
    ========================================================= */
+track('visit',true);
 const h0=location.hash.slice(1), arStart=arHash(h0);
 setDish(arStart||(BY[h0]?h0:'tuna-taco')); if(arStart) syncRemovedUI(arStart);
 // AR comes first: open on the AR screen unless a specific 3D dish link was used
